@@ -1,1 +1,17 @@
-export class Department {}
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+
+@Entity('departments')
+export class Department {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+
+    @Column({ unique: true })
+    name: string;
+
+    @Column()
+    type: string; // 'Directorate' or 'Team'
+
+    @OneToMany(() => User, (user) => user.department)
+    users: User[];
+}

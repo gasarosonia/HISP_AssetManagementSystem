@@ -1,26 +1,60 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Department } from './entities/department.entity';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 
 @Injectable()
 export class DepartmentsService {
-  create(createDepartmentDto: CreateDepartmentDto) {
-    return 'This action adds a new department';
+  constructor(
+    @InjectRepository(Department)
+    private readonly departmentRepo: Repository<Department>,
+  ) { }
+
+  async create(createDepartmentDto: CreateDepartmentDto): Promise<Department> {
+    const existing = await this.departmentRepo.findOne({
+      where: { name: createDepartmentDto.name }
+    });
+    if (existing) {
+      throw new ConflictException(`Department with name '${createDepartmentDto.name}' already exists`);
+    }
+
+    const department = this.departmentRepo.create(createDepartmentDto);
+    return await this.departmentRepo.save(department);
   }
 
-  findAll() {
-    return `This action returns all departments`;
+  async findAll(): Promise<Department[]> {
+    // We include the 'users' relation so the frontend can display staff counts
+    return await this.departmentRepo.find({ relations: ['users'] });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} department`;
+  async findOne(id: string): Promise<Department> {
+    const department = await this.departmentRepo.findOne({
+      where: { id },
+      relations: ['users']
+    });
+    if (!department) throw new NotFoundException(`Department with ID ${id} not found`);
+    return department;
   }
 
-  update(id: number, updateDepartmentDto: UpdateDepartmentDto) {
-    return `This action updates a #${id} department`;
+  async findByName(name: string): Promise<Department> {
+    const department = await this.departmentRepo.findOne({
+      where: { name },
+      relations: ['users']
+    });
+    if (!department) throw new NotFoundException(`Department with name '${name}' not found`);
+    return department;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} department`;
+  async update(id: string, updateDepartmentDto: UpdateDepartmentDto): Promise<Department> {
+    const department = await this.findOne(id);
+    Object.assign(department, updateDepartmentDto);
+    return await this.departmentRepo.save(department);
+  }
+
+  async remove(id: string): Promise<void> {
+    const department = await this.findOne(id);
+    await this.departmentRepo.remove(department);
   }
 }
