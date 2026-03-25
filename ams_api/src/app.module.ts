@@ -3,6 +3,13 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import { DepartmentsModule } from './departments/departments.module';
+import { UsersModule } from './users/users.module';
+import { CategoriesModule } from './categories/categories.module';
+import { AssetsModule } from './assets/assets.module';
+import { AssetsAssignmentsModule } from './assets-assignments/assets-assignments.module';
+import { AssetsRequestsModule } from './assets-requests/assets-requests.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -24,6 +31,13 @@ import { AppService } from "./app.service";
       }),
       inject: [ConfigService],
     }),
+    DepartmentsModule,
+    UsersModule,
+    CategoriesModule,
+    AssetsModule,
+    AssetsAssignmentsModule,
+    AssetsRequestsModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
