@@ -17,24 +17,18 @@ export class AssetAssignmentsService {
     private readonly dataSource: DataSource,
   ) { }
 
-  /**
-   * Assigns an asset to a user and records it in history.
-   */
   async create(createDto: CreateAssetAssignmentDto): Promise<AssetAssignment> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1. Check if Asset exists
       const asset = await queryRunner.manager.findOne(Asset, {
         where: { id: createDto.asset_id },
       });
       if (!asset) {
         throw new NotFoundException(`Asset with ID ${createDto.asset_id} not found`);
       }
-
-      // 2. Check if User exists
       const user = await queryRunner.manager.findOne(User, {
         where: { id: createDto.user_id },
       });
@@ -42,19 +36,15 @@ export class AssetAssignmentsService {
         throw new NotFoundException(`User with ID ${createDto.user_id} not found`);
       }
 
-      // 3. Update Asset status and assigned_to
       asset.status = 'ASSIGNED';
       asset.assigned_to = user;
       await queryRunner.manager.save(asset);
-
-      // 4. Create Assignment Record
       const assignment = queryRunner.manager.create(AssetAssignment, {
         asset,
         user,
         condition_on_assign: createDto.condition_on_assign,
         assigned_at: new Date(),
       });
-
       const savedAssignment = await queryRunner.manager.save(assignment);
 
       await queryRunner.commitTransaction();

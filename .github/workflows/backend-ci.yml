@@ -1,0 +1,36 @@
+name: HISP-AMS Backend CI
+
+on:
+  push:
+    branches: [ "master", "develop" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm ci
+      working-directory: ./ams_api
+
+    - name: Run Linter (Check for messy code)
+      run: npm run lint
+      working-directory: ./ams_api
+
+    - name: Run Unit Tests (Verify business logic)
+      run: npm run test
+      working-directory: ./ams_api
+
+    - name: Test Docker Build (Verify container works)
+      run: docker build -t hisp-api-test -f ./ams_api/Dockerfile ./ams_api
