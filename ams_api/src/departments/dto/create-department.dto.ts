@@ -11,10 +11,10 @@ export class CreateDepartmentDto {
   name: string;
 
   @ApiProperty({
-    enum: ['Directorate', 'Country Office'],
+    enum: ['Directorate', 'Country Portfolio'],
     description: 'Organizational level',
   })
   @IsString()
-  @IsIn(['Directorate', 'Country Office'])
+  @IsIn(['Directorate', 'Country Portfolio'])
   type: string;
 }

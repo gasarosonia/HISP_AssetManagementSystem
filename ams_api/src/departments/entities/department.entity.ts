@@ -11,7 +11,7 @@ export class Department {
   name: string;
 
   @Column()
-  type: string; // 'Directorate' or 'Team'
+  type: string; // 'Directorate' or 'Country Portfolio'
 
   @OneToMany(() => User, (user) => user.department)
   users: User[];

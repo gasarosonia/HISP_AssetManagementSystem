@@ -8,6 +8,6 @@ import { Department } from './entities/department.entity';
   imports: [TypeOrmModule.forFeature([Department])],
   controllers: [DepartmentsController],
   providers: [DepartmentsService],
-  exports: [DepartmentsService], // Exported in case other modules need it
+  exports: [DepartmentsService],
 })
-export class DepartmentsModule {}
+export class DepartmentsModule { }

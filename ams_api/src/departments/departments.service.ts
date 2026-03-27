@@ -14,7 +14,7 @@ export class DepartmentsService {
   constructor(
     @InjectRepository(Department)
     private readonly departmentRepo: Repository<Department>,
-  ) {}
+  ) { }
 
   async create(createDepartmentDto: CreateDepartmentDto): Promise<Department> {
     const existing = await this.departmentRepo.findOne({
@@ -31,7 +31,6 @@ export class DepartmentsService {
   }
 
   async findAll(): Promise<Department[]> {
-    // We include the 'users' relation so the frontend can display staff counts
     return await this.departmentRepo.find({ relations: ['users'] });
   }
 
