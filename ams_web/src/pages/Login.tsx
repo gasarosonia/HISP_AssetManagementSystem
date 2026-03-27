@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ShieldCheck, Mail, Lock, Sparkles } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { ArrowRight, ShieldCheck, Mail, Lock } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 export const Login = () => {
   const [email, setEmail] = useState('');

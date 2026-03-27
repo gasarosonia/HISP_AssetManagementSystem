@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -11,7 +10,7 @@ import {
   Bell,
   Sparkles,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 export const Layout = () => {
   const { user, logout } = useAuth();
@@ -73,14 +72,16 @@ export const Layout = () => {
                 }`
               }
             >
-              <item.icon
-                className={`w-5 h-5 transition-transform duration-300 ${
-                  // Optional: Add a subtle bounce effect on the active icon
-                  ({ isActive }: any) =>
-                    isActive ? 'scale-110' : 'group-hover:scale-110'
-                }`}
-              />
-              <span className="text-sm">{item.name}</span>
+              {({ isActive }) => (
+                <>
+                  <item.icon
+                    className={`w-5 h-5 transition-transform duration-300 ${
+                      isActive ? 'scale-110' : 'group-hover:scale-110'
+                    }`}
+                  />
+                  <span className="text-sm">{item.name}</span>
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
