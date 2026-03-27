@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Mail, Lock, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const Login = () => {
@@ -10,7 +10,7 @@ export const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setTimeout(() => {
@@ -22,127 +22,126 @@ export const Login = () => {
         role: 'ADMIN',
       });
       navigate('/');
-    }, 1000);
+    }, 1200);
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-white font-sans">
-      {/* LEFT PANEL */}
-      <div className="w-full lg:w-[40%] flex flex-col justify-center px-8 md:px-16 lg:px-24">
-        <div className="mb-10 lg:hidden flex items-center gap-3">
-          <img
-            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTDiC5rBaWuabdf-FTUqrwzSQ_jrQWw-o3U7g&s"
-            alt="HISP Rwanda"
-            className="w-12 h-12 rounded-full shadow-sm"
+    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 relative overflow-hidden font-sans">
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#ff8000] rounded-full blur-[120px] opacity-20 animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#e49f37] rounded-full blur-[150px] opacity-20" />
+
+      <div className="relative z-10 w-full max-w-[1000px] flex flex-col md:flex-row bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(228,159,55,0.2)] border border-white m-4 overflow-hidden">
+        {/* LEFT SIDE: Visual Identity */}
+        <div className="w-full md:w-1/2 bg-[#ff8000] p-12 flex flex-col justify-between text-white relative">
+          {/* Subtle Pattern Overlay */}
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle, #fff 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+            }}
           />
-          <h1 className="text-xl font-bold text-hisp-dark tracking-tight">
-            HISP-AMS
-          </h1>
+
+          <div className="relative z-10">
+            <div className="bg-white p-3 rounded-2xl inline-block shadow-xl mb-6">
+              <img
+                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTDiC5rBaWuabdf-FTUqrwzSQ_jrQWw-o3U7g&s"
+                alt="HISP Logo"
+                className="w-12 h-12 rounded-full"
+              />
+            </div>
+            <h1 className="text-4xl font-black leading-tight mb-4">
+              Intelligence <br /> in Inventory.
+            </h1>
+            <p className="text-orange-50 font-medium opacity-90 max-w-xs">
+              Managing HISP Rwanda's physical assets with precision and
+              real-time data insights.
+            </p>
+          </div>
         </div>
 
-        <div className="max-w-md w-full">
-          <h2 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">
-            Welcome back
-          </h2>
-          <p className="text-slate-500 mb-8 font-medium">
-            Please enter your enterprise credentials to access the system.
-          </p>
+        <div className="w-full md:w-1/2 p-12 lg:p-16 bg-white/40 flex flex-col justify-center">
+          <div className="mb-10">
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+              HISP-AMS Login
+            </h2>
+            <p className="text-slate-500 text-sm font-medium mt-1">
+              Access your secure workspace
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                Email Address
-              </label>
-              <div className="relative group">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-hisp-primary transition-colors" />
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="group">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-focus-within:text-[#ff8000] transition-colors">
+                  Work Email
+                </label>
+              </div>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#ff8000] transition-colors" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000] transition-all font-medium text-slate-700 placeholder:text-slate-300"
                   placeholder="name@hisprwanda.org"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-hisp-primary/20 focus:border-hisp-primary transition-all font-medium"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                Password
-              </label>
-              <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-hisp-primary transition-colors" />
+            <div className="group">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-focus-within:text-[#ff8000] transition-colors">
+                  Secure Password
+                </label>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#ff8000] transition-colors" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000] transition-all font-medium text-slate-700 placeholder:text-slate-300"
                   placeholder="••••••••••••"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-hisp-primary/20 focus:border-hisp-primary transition-all font-medium"
                 />
               </div>
             </div>
 
             <button
               disabled={isLoading}
-              className="w-full bg-hisp-dark hover:bg-hisp-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-hisp-dark/20 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+              className="w-full bg-[#ff8000] hover:bg-[#e49f37] text-white font-bold py-4 rounded-2xl shadow-[0_20px_40px_-12px_rgba(255,128,0,0.3)] transform active:scale-[0.97] transition-all flex items-center justify-center gap-3 mt-4"
             >
               {isLoading ? (
-                'Verifying Identity...'
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  Login
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <span>Sign into AMS</span>
+                  <ArrowRight className="w-5 h-5" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-12 flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-            <ShieldCheck className="w-6 h-6 text-emerald-600 flex-shrink-0" />
-            <p className="text-xs text-emerald-800 font-medium">
-              This system is protected by end-to-end encryption and HISP Rwanda
-              security protocols.
-            </p>
+          <div className="mt-10 pt-8 border-t border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Server Verified
+              </span>
+            </div>
+            <ShieldCheck className="w-4 h-4 text-slate-300" />
           </div>
         </div>
       </div>
 
-      {/* RIGHT PANEL */}
-      <div className="hidden lg:flex lg:w-[60%] bg-hisp-dark relative overflow-hidden items-center justify-center">
-        <div
-          className="absolute inset-0 opacity-10 pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)',
-            backgroundSize: '30px 30px',
-          }}
-        />
-
-        <div className="relative z-10 flex flex-col items-center text-center p-12">
-          <div className="bg-white p-4 rounded-[2.5rem] shadow-2xl mb-8 transform hover:rotate-3 transition-transform duration-500">
-            <img
-              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTDiC5rBaWuabdf-FTUqrwzSQ_jrQWw-o3U7g&s"
-              alt="HISP Rwanda Official"
-              className="w-40 h-40 rounded-full object-contain"
-            />
-          </div>
-          <h1 className="text-white text-4xl font-black tracking-tight mb-4">
-            HISP Rwanda
-          </h1>
-          <p className="text-blue-100/70 text-lg max-w-sm font-medium leading-relaxed">
-            Strengthening public health systems through innovative asset
-            tracking and data management.
-          </p>
-        </div>
-
-        {/* Decorative Elements */}
-        <div className="absolute bottom-10 right-10 flex items-center gap-2 text-white/30 text-[10px] font-bold tracking-[0.3em] uppercase">
-          <span>Integrity</span>
-          <div className="w-1 h-1 bg-white/30 rounded-full" />
-          <span>Efficiency</span>
-          <div className="w-1 h-1 bg-white/30 rounded-full" />
-          <span>Security</span>
-        </div>
+      {/* FOOTER INFO */}
+      <div className="absolute bottom-6 text-center w-full">
+        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">
+          Health Information Systems Program — Rwanda
+        </p>
       </div>
     </div>
   );
