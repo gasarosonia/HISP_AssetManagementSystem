@@ -23,8 +23,8 @@ export class AuditLog {
   timestamp: Date;
 
   @Column({ type: 'jsonb', nullable: true })
-  old_values: any;
+  old_values: Record<string, unknown>;
 
   @Column({ type: 'jsonb', nullable: true })
-  new_values: any;
+  new_values: Record<string, unknown>;
 }

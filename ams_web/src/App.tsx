@@ -3,6 +3,10 @@ import { AuthProvider } from './context/AuthProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { Layout } from './components/Layout';
+import { Assets } from './pages/Assets';
+import { Requests } from './pages/Requests';
+import { Incidents } from './pages/Incidents';
+import { Directorate } from './pages/Directorate';
 
 const DashboardHome = () => (
   <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
@@ -23,6 +27,10 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
             <Route path="/" element={<DashboardHome />} />
+            <Route path="/assets" element={<Assets />} />
+            <Route path="/requests" element={<Requests />} />
+            <Route path="/incidents" element={<Incidents />} />
+            <Route path="/directorate" element={<Directorate />} />
           </Route>
         </Route>
       </Routes>

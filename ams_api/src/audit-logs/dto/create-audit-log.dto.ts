@@ -18,8 +18,8 @@ export class CreateAuditLogDto {
   record_id: string;
 
   @IsOptional()
-  old_values?: any;
+  old_values?: Record<string, unknown>;
 
   @IsOptional()
-  new_values?: any;
+  new_values?: Record<string, unknown>;
 }

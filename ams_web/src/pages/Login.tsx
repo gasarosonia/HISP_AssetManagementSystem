@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { api } from '../lib/api';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,30 +11,58 @@ export const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // const handleSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsLoading(true);
+  //   setTimeout(() => {
+  //     login('mock_jwt', {
+  //       id: '1',
+  //       full_name: 'Admin User',
+  //       email: email,
+  //       role: 'ADMIN',
+  //     });
+  //     navigate('/');
+  //   }, 1200);
+  // };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      login('mock_jwt', {
-        id: '1',
-        first_name: 'Admin',
-        last_name: 'User',
-        email: email,
-        role: 'ADMIN',
+
+    try {
+      const response = await api.post('/auth/login', {
+        email,
+        password,
       });
+
+      login(response.data.access_token, response.data.user);
+
       navigate('/');
-    }, 1200);
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { status?: number; data?: { message?: string | string[] } };
+        message: string;
+      };
+      const errorMsg = axiosError.response?.data?.message || axiosError.message;
+      console.error('Login Error Details:', {
+        status: axiosError.response?.status,
+        data: axiosError.response?.data,
+        message: errorMsg,
+      });
+      alert(
+        `Login Failed: ${Array.isArray(errorMsg) ? errorMsg.join(', ') : errorMsg}`,
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 relative overflow-hidden font-sans">
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#ff8000] rounded-full blur-[120px] opacity-20 animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#e49f37] rounded-full blur-[150px] opacity-20" />
-
       <div className="relative z-10 w-full max-w-[1000px] flex flex-col md:flex-row bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(228,159,55,0.2)] border border-white m-4 overflow-hidden">
-        {/* LEFT SIDE: Visual Identity */}
         <div className="w-full md:w-1/2 bg-[#ff8000] p-12 flex flex-col justify-between text-white relative">
-          {/* Subtle Pattern Overlay */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
@@ -136,8 +165,6 @@ export const Login = () => {
           </div>
         </div>
       </div>
-
-      {/* FOOTER INFO */}
       <div className="absolute bottom-6 text-center w-full">
         <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">
           Health Information Systems Program — Rwanda

@@ -11,6 +11,7 @@ import { AssetAssignmentsModule } from './assets-assignments/assets-assignments.
 import { AssetRequestsModule } from './assets-requests/assets-requests.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { AssetIncidentsModule } from './asset-incidents/asset-incidents.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AssetIncidentsModule } from './asset-incidents/asset-incidents.module';
     AssetRequestsModule,
     AuditLogsModule,
     AssetIncidentsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -24,9 +25,11 @@ export class UsersController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all users' })
-  findAll() {
-    return this.usersService.findAll();
+  @ApiOperation({
+    summary: 'Get all users, optionally filtered by departmentId',
+  })
+  findAll(@Query('departmentId') departmentId?: string) {
+    return this.usersService.findAll(departmentId);
   }
 
   @Get(':id')
