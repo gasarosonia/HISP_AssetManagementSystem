@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, FormEvent } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -65,13 +65,12 @@ export const Layout = () => {
     enabled: showResults && searchQuery.length > 1,
   });
 
-  const filteredResults = React.useMemo(() => {
+  const filteredResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return [];
 
     const q = searchQuery.toLowerCase();
     const results: SearchResult[] = [];
 
-    // Filter Assets
     if (assets) {
       (assets as SearchAsset[])
         .filter(
@@ -143,7 +142,7 @@ export const Layout = () => {
     navigate('/login');
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/assets?search=${encodeURIComponent(searchQuery)}`);
@@ -191,19 +190,17 @@ export const Layout = () => {
               key={item.name}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group font-medium ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#ff8000] to-[#e49f37] text-white shadow-[0_8px_16px_-6px_rgba(255,128,0,0.4)]'
-                    : 'text-slate-500 hover:bg-white/80 hover:text-[#ff8000] hover:shadow-sm'
+                `flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group font-medium ${isActive
+                  ? 'bg-gradient-to-r from-[#ff8000] to-[#e49f37] text-white shadow-[0_8px_16px_-6px_rgba(255,128,0,0.4)]'
+                  : 'text-slate-500 hover:bg-white/80 hover:text-[#ff8000] hover:shadow-sm'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
                   <item.icon
-                    className={`w-5 h-5 transition-transform duration-300 ${
-                      isActive ? 'scale-110' : 'group-hover:scale-110'
-                    }`}
+                    className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'
+                      }`}
                   />
                   <span className="text-sm">{item.name}</span>
                 </>
@@ -298,11 +295,10 @@ export const Layout = () => {
                         className="w-full flex items-center gap-4 px-6 py-4 hover:bg-orange-50/50 transition-all text-left group"
                       >
                         <div
-                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${
-                            result.type === 'asset'
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${result.type === 'asset'
                               ? 'bg-blue-50'
                               : 'bg-orange-50'
-                          }`}
+                            }`}
                         >
                           {result.type === 'asset' ? (
                             <Laptop className="w-5 h-5 text-blue-500" />
@@ -359,7 +355,6 @@ export const Layout = () => {
 
             <button className="relative p-3 bg-white/60 border border-white rounded-full text-slate-500 hover:text-[#ff8000] hover:shadow-md transition-all">
               <Search className="w-5 h-5 hidden" />{' '}
-              {/* Hidden, keeping structure */}
               <div className="w-5 h-5 flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-[#ff8000]" />
               </div>

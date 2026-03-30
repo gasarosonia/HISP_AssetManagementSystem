@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, MouseEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -105,13 +105,13 @@ export const Directorate = () => {
     },
   });
 
-  const handleEditClick = (e: React.MouseEvent, dept: Department) => {
+  const handleEditClick = (e: MouseEvent, dept: Department) => {
     e.stopPropagation();
     setDeptToEdit(dept);
     setIsEditModalOpen(true);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, dept: Department) => {
+  const handleDeleteClick = (e: MouseEvent, dept: Department) => {
     e.stopPropagation();
     setDeptToDelete(dept);
   };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -25,7 +25,7 @@ export const Login = () => {
   //   }, 1200);
   // };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
