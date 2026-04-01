@@ -197,7 +197,7 @@ export const CreateUserModal = ({
               >
                 {roles.map((r) => (
                   <option key={r} value={r}>
-                    {r} {r === 'HOD' ? '(Head of Directorate)' : ''}
+                    {r} {r === 'HOD' ? '(Head of Department)' : ''}
                   </option>
                 ))}
               </select>

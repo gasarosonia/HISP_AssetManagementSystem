@@ -57,6 +57,13 @@ export class AssetIncidentsService {
       await queryRunner.release();
     }
   }
+
+  async findAll() {
+    return this.incidentRepo.find({
+      relations: ['asset', 'reported_by', 'replacement_request'],
+      order: { reported_at: 'DESC' },
+    });
+  }
   async resolveIncident(
     incidentId: string,
     resolution: 'ACCEPTED' | 'DENIED',
@@ -69,7 +76,12 @@ export class AssetIncidentsService {
     try {
       const incident = await queryRunner.manager.findOne(AssetIncident, {
         where: { id: incidentId },
-        relations: ['asset', 'asset.category', 'reported_by'],
+        relations: [
+          'asset',
+          'asset.category',
+          'reported_by',
+          'reported_by.department',
+        ],
       });
 
       if (!incident) throw new NotFoundException('Incident not found');
@@ -83,9 +95,20 @@ export class AssetIncidentsService {
 
       if (resolution === 'ACCEPTED') {
         const request = queryRunner.manager.create(AssetRequest, {
-          requester: incident.reported_by,
+          requested_by: incident.reported_by,
+          department: incident.reported_by.department,
+          title: `Replacement for ${incident.asset.name}`,
           description: `[AUTO-GENERATED REPLACEMENT] Previous asset (${incident.asset.tag_id}) was ${incident.incident_type}. Reason: ${remarks}`,
           status: 'PENDING',
+          items: [
+            {
+              name: incident.asset.name,
+              quantity: 1,
+              description: 'Replacement for damaged/missing asset',
+            },
+          ],
+          financials: {},
+          logistics: {},
         });
         const savedRequest = await queryRunner.manager.save(request);
         incident.replacement_request = savedRequest;

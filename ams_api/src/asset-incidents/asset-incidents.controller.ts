@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AssetIncidentsService } from './asset-incidents.service';
 import { ReportIncidentDto } from './dto/report-asset-incident.dto';
@@ -13,6 +13,12 @@ export class AssetIncidentsController {
   @ApiOperation({ summary: 'Report a broken or missing asset' })
   reportIncident(@Body() dto: ReportIncidentDto) {
     return this.assetIncidentsService.reportIncident(dto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List all asset incidents' })
+  findAll() {
+    return this.assetIncidentsService.findAll();
   }
 
   @Patch(':id/resolve')

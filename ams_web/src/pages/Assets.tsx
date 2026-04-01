@@ -68,7 +68,7 @@ const getCategoryIcon = (categoryName?: string) => {
 };
 
 export const Assets = () => {
-  const { isAdmin } = useAuth();
+  const { user: currentUser, isAdmin, isHOD, isStaff } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
@@ -109,6 +109,14 @@ export const Assets = () => {
 
     let filtered = assets.filter((a) => a.status !== 'DISPOSED');
 
+    if (isStaff) {
+      filtered = filtered.filter((a) => a.assigned_to?.id === currentUser?.id);
+    } else if (isHOD) {
+      filtered = filtered.filter(
+        (a) => a.department?.id === currentUser?.department?.id,
+      );
+    }
+
     if (selectedCategory) {
       filtered = filtered.filter((a) => a.category?.id === selectedCategory.id);
     }
@@ -128,7 +136,15 @@ export const Assets = () => {
     }
 
     return filtered;
-  }, [assets, selectedCategory, searchQuery, assetSearch]);
+  }, [
+    assets,
+    selectedCategory,
+    searchQuery,
+    assetSearch,
+    isStaff,
+    isHOD,
+    currentUser,
+  ]);
 
   const categoryAssetsCount = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -288,7 +304,7 @@ export const Assets = () => {
                         Depreciation
                       </span>
                       <span className="text-sm font-bold text-slate-700">
-                        {cat.depreciation_rate}% / yr
+                        {cat.depreciation_rate ?? 0}% / yr
                       </span>
                     </div>
                   </div>

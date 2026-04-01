@@ -57,10 +57,8 @@ export class AssetRequestsService {
   async update(id: string, dto: UpdateAssetRequestDto): Promise<AssetRequest> {
     const request = await this.findOne(id);
 
-    // Update Status
     if (dto.status) request.status = dto.status;
 
-    // Custom Approval Logic (CEO & Finance)
     if (dto.ceo_remarks) request.ceo_remarks = dto.ceo_remarks;
     if (dto.verified_by_finance_id) {
       request.verified_by_finance = {

@@ -9,14 +9,17 @@ import {
   Users,
   LogOut,
   Search,
-  Sparkles,
   User as UserIcon,
   X,
   History,
   ArrowRight,
+  Plus,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import { SimpleRequestModal } from './SimpleRequestModal';
+import { ReportAssetIncidentModal } from './ReportAssetIncidentModal';
 
 interface SearchResult {
   id: string;
@@ -40,10 +43,12 @@ interface SearchUser {
 }
 
 export const Layout = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isIncidentModalOpen, setIsIncidentModalOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -150,13 +155,32 @@ export const Layout = () => {
     }
   };
 
-  const navItems = [
-    { name: 'System Overview', path: '/overview', icon: LayoutDashboard },
-    { name: 'Procurement', path: '/requests', icon: ClipboardCheck },
-    { name: 'Asset Masterlist', path: '/assets', icon: Laptop },
-    { name: 'Investigations', path: '/incidents', icon: AlertTriangle },
-    { name: 'Directorate', path: '/directorate', icon: Users },
-  ];
+  const navItems = useMemo(() => {
+    if (isAdmin) {
+      return [
+        { name: 'System Overview', path: '/overview', icon: LayoutDashboard },
+        { name: 'Procurement', path: '/requests', icon: ClipboardCheck },
+        { name: 'Asset Masterlist', path: '/assets', icon: Laptop },
+        { name: 'Investigations', path: '/incidents', icon: AlertTriangle },
+        { name: 'Directorate', path: '/directorate', icon: Users },
+      ];
+    } else {
+      return [
+        { name: 'Asset Manager', path: '/overview', icon: LayoutDashboard },
+        {
+          name: 'Request Asset',
+          onClick: () => setIsRequestModalOpen(true),
+          icon: Plus,
+        },
+        {
+          name: 'Report Incident',
+          onClick: () => setIsIncidentModalOpen(true),
+          icon: ShieldAlert,
+        },
+        { name: 'My Profile', path: '/profile', icon: UserIcon },
+      ];
+    }
+  }, [isAdmin]);
 
   return (
     <div className="relative flex h-screen bg-[#f8fafc] overflow-hidden font-sans text-slate-900">
@@ -185,30 +209,46 @@ export const Layout = () => {
         </div>
 
         <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-300 group font-medium ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#ff8000] to-[#e49f37] text-white shadow-[0_8px_16px_-6px_rgba(255,128,0,0.4)]'
-                    : 'text-slate-500 hover:bg-white/80 hover:text-[#ff8000] hover:shadow-sm'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <item.icon
-                    className={`w-4 h-4 transition-transform duration-300 ${
-                      isActive ? 'scale-110' : 'group-hover:scale-110'
-                    }`}
-                  />
+          {navItems.map((item) => {
+            const commonClasses = (active: boolean) =>
+              `w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-300 group font-medium text-left ${
+                active
+                  ? 'bg-gradient-to-r from-[#ff8000] to-[#e49f37] text-white shadow-[0_8px_16px_-6px_rgba(255,128,0,0.4)]'
+                  : 'text-slate-500 hover:bg-white/80 hover:text-[#ff8000] hover:shadow-sm'
+              }`;
+
+            if (item.onClick) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={item.onClick}
+                  className={commonClasses(false)}
+                >
+                  <item.icon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                   <span className="text-xs font-semibold">{item.name}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
+                </button>
+              );
+            }
+
+            return (
+              <NavLink
+                key={item.name}
+                to={item.path!}
+                className={({ isActive }) => commonClasses(isActive)}
+              >
+                {({ isActive }) => (
+                  <>
+                    <item.icon
+                      className={`w-4 h-4 transition-transform duration-300 ${
+                        isActive ? 'scale-110' : 'group-hover:scale-110'
+                      }`}
+                    />
+                    <span className="text-xs font-semibold">{item.name}</span>
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className="p-3 m-3 bg-white/50 backdrop-blur-md rounded-xl border border-white shadow-sm">
@@ -240,7 +280,7 @@ export const Layout = () => {
           <div className="relative w-full max-w-md group" ref={searchRef}>
             <form onSubmit={handleSearchSubmit} className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="w-4 h-4 text-slate-400 group-focus-within:text-[#ff8000] transition-colors" />
+                <Search className="w-4 h-4 text-orange-400/60 group-focus-within:text-[#ff8000] transition-colors" />
               </div>
               <input
                 ref={inputRef}
@@ -306,7 +346,7 @@ export const Layout = () => {
                           {result.type === 'asset' ? (
                             <Laptop className="w-5 h-5 text-blue-500" />
                           ) : (
-                            <UserIcon className="w-5 h-5 text-[#ff8000]" />
+                            <UserIcon className="w-5 h-5 text-orange-400" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -317,13 +357,13 @@ export const Layout = () => {
                             {result.subtitle}
                           </p>
                         </div>
-                        <ArrowRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                        <ArrowRight className="w-4 h-4 text-orange-200 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                       </button>
                     ))
                   ) : (
                     <div className="px-6 py-12 text-center">
-                      <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <History className="w-6 h-6 text-slate-300" />
+                      <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <History className="w-6 h-6 text-orange-200" />
                       </div>
                       <p className="text-sm font-bold text-slate-500">
                         No results found for "{searchQuery}"
@@ -344,31 +384,26 @@ export const Layout = () => {
               </div>
             )}
           </div>
-
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col text-right">
-              <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center justify-end gap-1 mb-0.5">
-                <Sparkles className="w-3 h-3 text-[#e49f37]" /> Core Network
-              </span>
-              <span className="text-xs font-bold text-emerald-600 flex items-center gap-1.5 justify-end bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                Synchronized
-              </span>
-            </div>
-
-            <button className="relative p-3 bg-white/60 border border-white rounded-full text-slate-500 hover:text-[#ff8000] hover:shadow-md transition-all">
-              <Search className="w-5 h-5 hidden" />{' '}
-              <div className="w-5 h-5 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-[#ff8000]" />
-              </div>
-            </button>
-          </div>
         </header>
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-5 lg:p-6">
-          <Outlet />
+          <Outlet
+            context={{
+              openRequest: () => setIsRequestModalOpen(true),
+              openIncident: () => setIsIncidentModalOpen(true),
+            }}
+          />
         </main>
       </div>
+
+      <SimpleRequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+      />
+      <ReportAssetIncidentModal
+        isOpen={isIncidentModalOpen}
+        onClose={() => setIsIncidentModalOpen(false)}
+      />
     </div>
   );
 };

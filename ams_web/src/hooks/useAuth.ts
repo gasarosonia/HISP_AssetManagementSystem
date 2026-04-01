@@ -9,18 +9,31 @@ export const useAuth = () => {
 
   const { user } = context;
 
-  const role = user?.role?.toUpperCase() || '';
-  const deptName = user?.department?.name?.toUpperCase() || '';
+  const role = user?.role || '';
+  const deptName = user?.department?.name || '';
 
-  const isAdmin =
-    role === 'SYSTEM_ADMIN' ||
-    role === 'ADMIN' ||
-    role.includes('ADMIN') ||
-    role.includes('FINANCE') ||
-    role.includes('DIRECTOR') ||
-    role.includes('OFFICER') ||
-    deptName.includes('FINANCE') ||
-    deptName.includes('ADMIN');
+  const roleUpper = role.toUpperCase();
+  const deptUpper = deptName.toUpperCase();
 
-  return { ...context, isAdmin };
+  const isFinanceAdmin =
+    roleUpper.includes('SYSTEM_ADMIN') ||
+    roleUpper.includes('ADMIN') ||
+    roleUpper.includes('FINANCE') ||
+    deptUpper.includes('ADMIN AND FINANCE') ||
+    deptUpper.includes('ADMIN & FINANCE') ||
+    deptUpper.includes('FINANCE');
+
+  const isHOD = roleUpper.includes('HOD') || roleUpper.includes('HEAD OF');
+
+  const isStaff = roleUpper.includes('STAFF') || (!isFinanceAdmin && !isHOD);
+
+  const isAdmin = isFinanceAdmin;
+
+  return {
+    ...context,
+    isAdmin,
+    isFinanceAdmin,
+    isHOD,
+    isStaff,
+  };
 };

@@ -1,4 +1,5 @@
 import { X, Tag, Percent, ArrowDownToLine } from 'lucide-react';
+import { Category } from '@/types/assets';
 import {
   Dialog,
   DialogContent,
@@ -10,12 +11,7 @@ import {
 interface ViewCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  category: {
-    id: string;
-    name: string;
-    depreciation_rate: number;
-    salvage_rate: number;
-  } | null;
+  category: Category | null;
 }
 
 export const ViewCategoryModal = ({
@@ -72,7 +68,7 @@ export const ViewCategoryModal = ({
                 Depreciation
               </p>
               <p className="text-sm font-black text-slate-700">
-                {category.depreciation_rate}%{' '}
+                {category.depreciation_rate ?? 0}%{' '}
                 <span className="text-[10px] text-slate-400 font-bold tracking-normal italic ml-0.5">
                   per year
                 </span>
@@ -87,7 +83,7 @@ export const ViewCategoryModal = ({
                 Salvage Rate
               </p>
               <p className="text-sm font-black text-slate-700">
-                {category.salvage_rate}%{' '}
+                {category.salvage_rate ?? 0}%{' '}
                 <span className="text-[10px] text-slate-400 font-bold tracking-normal italic ml-0.5">
                   end value
                 </span>

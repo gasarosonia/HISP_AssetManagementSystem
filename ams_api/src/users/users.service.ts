@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -12,36 +12,91 @@ export class UsersService implements OnModuleInit {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-  ) {}
-  async onModuleInit() {
-    const adminEmail = 'admin@hisprwanda.org';
-    const existingAdmin = await this.findByEmail(adminEmail);
+    private readonly dataSource: DataSource,
+  ) {
+    console.log('[UsersService] Service Instantiated');
+  }
 
-    if (!existingAdmin) {
-      console.log('Seeding default Admin account...');
-      const hashedPassword = await bcrypt.hash('Admin123!', 10);
-      const adminUser = this.userRepo.create({
-        full_name: 'System Admin',
-        email: adminEmail,
-        password_hash: hashedPassword,
-        role: 'Admin and Finance Director',
+  async onModuleInit() {
+    console.log('[UsersService] onModuleInit triggered');
+    await this.seedUsers();
+  }
+
+  async seedUsers() {
+    try {
+      console.log('[UsersService] [SEED] Starting synchronization...');
+
+      const deptRepo = this.dataSource.getRepository(Department);
+      const userRepo = this.dataSource.getRepository(User);
+
+      const defaultDeptName = 'Operations';
+      let defaultDept = await deptRepo.findOne({
+        where: { name: defaultDeptName },
       });
-      await this.userRepo.save(adminUser);
-      console.log(
-        '✅ Default Admin seeded! (admin@hisprwanda.org / Admin123!)',
-      );
-    } else {
-      console.log('Admin user found. Enforcing Admin123! password...');
-      existingAdmin.password_hash = await bcrypt.hash('Admin123!', 10);
-      existingAdmin.role = 'Admin and Finance Director';
-      await this.userRepo.save(existingAdmin);
-      console.log('✅ Admin credentials reset successfully!');
+
+      if (!defaultDept) {
+        console.log(
+          `[UsersService] [SEED] Creating Department: ${defaultDeptName}`,
+        );
+        defaultDept = deptRepo.create({
+          name: defaultDeptName,
+          type: 'Directorate',
+          status: 'Active',
+        });
+        await deptRepo.save(defaultDept);
+      }
+
+      const usersToSeed = [
+        {
+          email: 'admin@hisprwanda.org',
+          full_name: 'Test Admin',
+          password: 'Admin123!',
+          role: 'Admin and Finance Director',
+        },
+        {
+          email: 'staff@hisprwanda.org',
+          full_name: 'Test Staff',
+          password: 'Staff123!',
+          role: 'Staff',
+        },
+        {
+          email: 'hod@hisprwanda.org',
+          full_name: 'Test HOD',
+          password: 'Hod123!',
+          role: 'Head of Operations',
+        },
+      ];
+
+      for (const seed of usersToSeed) {
+        const hashedPassword = await bcrypt.hash(seed.password, 10);
+        let user = await userRepo.findOne({ where: { email: seed.email } });
+
+        if (!user) {
+          console.log(`[UsersService] [SEED] Creating User: ${seed.email}`);
+          user = userRepo.create({
+            full_name: seed.full_name,
+            email: seed.email,
+            password_hash: hashedPassword,
+            role: seed.role,
+            department: defaultDept,
+          });
+        } else {
+          console.log(`[UsersService] [SEED] Updating User: ${seed.email}`);
+          user.password_hash = hashedPassword;
+          user.role = seed.role;
+          user.department = defaultDept;
+          user.full_name = seed.full_name;
+        }
+        await userRepo.save(user);
+      }
+      console.log('[UsersService] [SEED] ALL USERS SYNCHRONIZED');
+    } catch (error) {
+      console.error('[UsersService] [SEED] ERROR:', error);
     }
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { department_id, ...userData } = createUserDto;
-
     const user = this.userRepo.create({
       ...userData,
       department: { id: department_id } as Department,
@@ -79,11 +134,22 @@ export class UsersService implements OnModuleInit {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return await this.userRepo.findOne({
-      where: { email },
-      select: ['id', 'full_name', 'email', 'password_hash', 'role'],
-      relations: ['department'],
-    });
+    const user = await this.userRepo
+      .createQueryBuilder('user')
+      .addSelect('user.password_hash')
+      .leftJoinAndSelect('user.department', 'department')
+      .where('user.email = :email', { email })
+      .getOne();
+
+    if (user) {
+      console.log(
+        `[UsersService] findByEmail: Found user ${email}, has password_hash: ${!!user.password_hash}`,
+      );
+    } else {
+      console.log(`[UsersService] findByEmail: User ${email} NOT found`);
+    }
+
+    return user;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {

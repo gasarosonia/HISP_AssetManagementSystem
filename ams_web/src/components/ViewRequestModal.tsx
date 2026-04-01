@@ -13,7 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-import { AssetRequest } from '../pages/Requests';
+import { AssetRequest } from '../types/assets';
 
 interface ViewRequestModalProps {
   isOpen: boolean;
@@ -73,7 +73,8 @@ export const ViewRequestModal = ({
     }
   };
 
-  const totalCost =
+  const grandTotal =
+    request.financials?.grand_total ??
     (request.quantity || 0) * (request.estimated_unit_cost || 0);
 
   return (
@@ -83,7 +84,7 @@ export const ViewRequestModal = ({
         onClick={onClose}
       />
 
-      <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 animate-in slide-in-from-right duration-300 flex flex-col border-l border-slate-100">
+      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl z-50 animate-in slide-in-from-right duration-300 flex flex-col border-l border-slate-100">
         <div className="px-8 py-8 border-b border-slate-100 bg-gradient-to-br from-slate-50 to-white relative">
           <button
             onClick={onClose}
@@ -118,35 +119,107 @@ export const ViewRequestModal = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
-          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-              <Banknote className="w-3.5 h-3.5" /> Budget Calculation
-            </h3>
-
-            <div className="flex justify-between items-end mb-3 pb-3 border-b border-slate-200/60">
-              <div>
-                <p className="text-xs font-bold text-slate-500">Unit Cost</p>
-                <p className="text-sm font-bold text-slate-800">
-                  {(request.estimated_unit_cost || 0).toLocaleString()} RWF
-                </p>
-              </div>
-              <div className="text-center px-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Multiplier
-                </p>
-                <p className="text-sm font-bold text-slate-600">
-                  x {request.quantity}
-                </p>
+          {/* Multi-Item Display */}
+          {request.items && request.items.length > 0 ? (
+            <div>
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" /> Requested
+                Line Items
+              </h3>
+              <div className="space-y-3">
+                {request.items.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 bg-slate-50/50 border border-slate-100 rounded-xl flex justify-between items-center group"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-medium truncate">
+                        {item.description || 'No description'}
+                      </p>
+                    </div>
+                    <div className="text-right ml-4 shrink-0">
+                      <p className="text-xs font-black text-slate-700">
+                        {(item.unit_price * item.quantity).toLocaleString()} RWF
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                        x{item.quantity} units
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          ) : (
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <Banknote className="w-3.5 h-3.5" /> Budget Calculation
+              </h3>
 
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-black uppercase tracking-widest text-slate-700">
-                Total Est. Cost
-              </span>
-              <span className="text-lg font-black text-emerald-600">
-                {totalCost.toLocaleString()} RWF
-              </span>
+              <div className="flex justify-between items-end mb-3 pb-3 border-b border-slate-200/60">
+                <div>
+                  <p className="text-xs font-bold text-slate-500">Unit Cost</p>
+                  <p className="text-sm font-bold text-slate-800">
+                    {(request.estimated_unit_cost || 0).toLocaleString()} RWF
+                  </p>
+                </div>
+                <div className="text-center px-4">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Multiplier
+                  </p>
+                  <p className="text-sm font-bold text-slate-600">
+                    x {request.quantity}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-700">
+                  Subtotal
+                </span>
+                <span className="text-sm font-bold text-slate-900">
+                  {(
+                    (request.quantity || 0) * (request.estimated_unit_cost || 0)
+                  ).toLocaleString()}{' '}
+                  RWF
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Financials & Accounting */}
+          <div className="bg-[#1e293b] rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-10 -mt-10" />
+            <div className="relative z-10 space-y-4">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <span>Final Authorized Total</span>
+                <span className="text-emerald-400">Exp. Not to exceed</span>
+              </div>
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-3xl font-black text-emerald-400 tracking-tight leading-none">
+                    {grandTotal.toLocaleString()}{' '}
+                    <span className="text-xs text-white opacity-50 ml-1">
+                      RWF
+                    </span>
+                  </p>
+                  {request.financials?.transport_fees ? (
+                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider italic">
+                      + {request.financials.transport_fees.toLocaleString()} RWF
+                      Transfer Cost
+                    </p>
+                  ) : null}
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                    Basis: {request.financials?.cost_basis || 'Standard Market'}
+                  </p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    {request.financials?.budget_code_1 || 'General Ops'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -167,9 +240,11 @@ export const ViewRequestModal = ({
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
               Requisition Details
             </h3>
-            <div className="space-y-5">
+            <div className="grid grid-cols-1 gap-6">
               <div className="flex items-start gap-3">
-                <UserIcon className="w-4 h-4 text-slate-400 mt-0.5" />
+                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                  <UserIcon className="w-4 h-4 text-slate-400" />
+                </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                     Requested By
@@ -181,10 +256,12 @@ export const ViewRequestModal = ({
               </div>
 
               <div className="flex items-start gap-3">
-                <Building2 className="w-4 h-4 text-slate-400 mt-0.5" />
+                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                  <Building2 className="w-4 h-4 text-slate-400" />
+                </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Charge To Directorate
+                    Official Directorate
                   </p>
                   <p className="text-sm font-bold text-slate-800">
                     {request.department?.name || 'Unknown Directorate'}
@@ -192,8 +269,30 @@ export const ViewRequestModal = ({
                 </div>
               </div>
 
+              {request.logistics?.destination && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                    <Activity className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Ship-To Destination
+                    </p>
+                    <p className="text-sm font-bold text-slate-800">
+                      {request.logistics.destination}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Contact: {request.logistics.contact_name}{' '}
+                      {request.logistics.contact_phone}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-start gap-3">
-                <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                     Date Submitted
@@ -212,10 +311,10 @@ export const ViewRequestModal = ({
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+        <div className="p-6 border-t border-slate-100 bg-slate-100 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl shadow-sm transition-colors"
+            className="px-6 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl shadow-sm transition-colors"
           >
             Close Requisition
           </button>

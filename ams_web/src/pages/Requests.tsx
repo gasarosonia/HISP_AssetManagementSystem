@@ -13,44 +13,29 @@ import {
   User as UserIcon,
   Check,
   X,
+  Settings2,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
+import { AssetRequest } from '../types/assets';
 import { CreateRequestModal } from '../components/CreateRequestModal';
 import { ViewRequestModal } from '../components/ViewRequestModal';
-
-export interface AssetRequest {
-  id: string;
-  title: string;
-  description: string;
-  quantity?: number;
-  estimated_unit_cost?: number;
-  financials?: {
-    grand_total: number;
-  };
-  urgency: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'FULFILLED';
-  requested_by?: { full_name: string; id: string };
-  department?: { name: string };
-  created_at: string;
-}
+import { FormalizeRequestModal } from '../components/FormalizeRequestModal';
 
 export const Requests = () => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isAdmin, isHOD, isStaff } = useAuth();
   const queryClient = useQueryClient();
-
-  const isAdmin =
-    currentUser?.role === 'ADMIN' ||
-    currentUser?.role === 'SYSTEM_ADMIN' ||
-    currentUser?.role === 'Admin and Finance';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isFormalizeModalOpen, setIsFormalizeModalOpen] = useState(false);
   const [requestToView, setRequestToView] = useState<AssetRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<AssetRequest | null>(
+    null,
+  );
 
-  // FETCH REQUESTS
   const { data: requests, isLoading } = useQuery<AssetRequest[]>({
     queryKey: ['assets-requests'],
     queryFn: async () => {
@@ -69,8 +54,13 @@ export const Requests = () => {
   const filteredRequests = useMemo(() => {
     if (!requests) return [];
     let filtered = requests;
-    if (!isAdmin) {
+
+    if (isStaff) {
       filtered = filtered.filter((r) => r.requested_by?.id === currentUser?.id);
+    } else if (isHOD) {
+      filtered = filtered.filter(
+        (r) => r.department?.id === currentUser?.department?.id,
+      );
     }
 
     if (filterStatus !== 'ALL') {
@@ -92,7 +82,7 @@ export const Requests = () => {
         new Date(b.created_at || 0).getTime() -
         new Date(a.created_at || 0).getTime(),
     );
-  }, [requests, filterStatus, searchQuery, isAdmin, currentUser]);
+  }, [requests, filterStatus, searchQuery, currentUser, isHOD, isStaff]);
 
   const pendingCount =
     requests?.filter((r) => r.status === 'PENDING').length || 0;
@@ -136,6 +126,11 @@ export const Requests = () => {
       default:
         return 'text-slate-500 bg-slate-50';
     }
+  };
+
+  const handleFormalize = (req: AssetRequest) => {
+    setSelectedRequest(req);
+    setIsFormalizeModalOpen(true);
   };
 
   return (
@@ -355,6 +350,15 @@ export const Requests = () => {
 
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex justify-end gap-1 transition-opacity">
+                        {isHOD && req.status === 'PENDING' && (
+                          <button
+                            onClick={() => handleFormalize(req)}
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Process Request"
+                          >
+                            <Settings2 className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => setRequestToView(req)}
                           className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
@@ -427,6 +431,16 @@ export const Requests = () => {
         onClose={() => setRequestToView(null)}
         request={requestToView}
       />
+      {selectedRequest && (
+        <FormalizeRequestModal
+          isOpen={isFormalizeModalOpen}
+          onClose={() => {
+            setIsFormalizeModalOpen(false);
+            setSelectedRequest(null);
+          }}
+          request={selectedRequest}
+        />
+      )}
     </div>
   );
 };

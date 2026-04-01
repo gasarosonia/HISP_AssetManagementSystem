@@ -11,12 +11,7 @@ import {
   DialogFooter,
 } from './ui/dialog';
 
-interface Category {
-  id: string;
-  name: string;
-  depreciation_rate: number;
-  salvage_rate: number;
-}
+import { Category } from '@/types/assets';
 
 interface EditCategoryModalProps {
   isOpen: boolean;
@@ -38,8 +33,8 @@ export const EditCategoryModal = ({
   useEffect(() => {
     if (category) {
       setName(category.name);
-      setDepreciationRate(category.depreciation_rate.toString());
-      setSalvageRate(category.salvage_rate.toString());
+      setDepreciationRate((category.depreciation_rate ?? 10).toString());
+      setSalvageRate((category.salvage_rate ?? 5).toString());
       setError(null);
     }
   }, [category]);
