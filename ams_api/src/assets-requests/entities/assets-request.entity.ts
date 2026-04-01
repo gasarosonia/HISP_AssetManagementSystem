@@ -1,48 +1,44 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { User } from 'src/users/entities/user.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { Department } from '../../departments/entities/department.entity';
 
-@Entity('asset_requests')
+@Entity('assets_requests')
 export class AssetRequest {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column()
+  title: string;
+
+  @Column({ type: 'enum', enum: ['PENDING', 'APPROVED', 'REJECTED', 'FULFILLED'], default: 'PENDING' })
+  status: string;
+
+  @Column({ type: 'enum', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], default: 'MEDIUM' })
+  urgency: string;
+
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'requester_id' })
-  requester: User;
+  @JoinColumn({ name: 'requested_by_id' })
+  requested_by: User;
+
+  @ManyToOne(() => Department)
+  @JoinColumn({ name: 'department_id' })
+  department: Department;
+
+  @Column({ type: 'jsonb' })
+  items: any[];
+
+  @Column({ type: 'jsonb' })
+  financials: Record<string, any>;
+
+  @Column({ type: 'jsonb' })
+  logistics: Record<string, any>;
+
+  @Column({ type: 'text', nullable: true })
+  ceo_remarks: string;
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'verified_by_finance_id' })
   verified_by_finance: User;
-
-  @Column('text')
-  description: string;
-
-  @Column({ nullable: true })
-  budget_code: string;
-
-  @Column({
-    type: 'enum',
-    enum: [
-      'PENDING',
-      'HOD_INITIATED',
-      'FINANCE_VERIFIED',
-      'CEO_APPROVED',
-      'REJECTED',
-    ],
-    default: 'PENDING',
-  })
-  status: string;
-
-  @Column('text', { nullable: true })
-  ceo_remarks: string;
 
   @CreateDateColumn()
   created_at: Date;

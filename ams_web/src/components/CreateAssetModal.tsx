@@ -13,7 +13,7 @@ import {
   Box,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { Category } from '../pages/Assets';
+import { Category } from '@/types/assets';
 
 interface User {
   id: string;
@@ -29,11 +29,11 @@ interface CreateAssetModalProps {
   preselectedCategoryId?: string;
 }
 
-export const CreateAssetModal: React.FC<CreateAssetModalProps> = ({
+export const CreateAssetModal = ({
   isOpen,
   onClose,
   preselectedCategoryId,
-}) => {
+}: CreateAssetModalProps) => {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -222,7 +222,8 @@ export const CreateAssetModal: React.FC<CreateAssetModalProps> = ({
                 >
                   <option value="IN_STOCK">In Stock (Available)</option>
                   <option value="ASSIGNED">Assigned / Deployed</option>
-                  <option value="UNDER_REPAIR">Under Repair</option>
+                  <option value="BROKEN">Broken</option>
+                  <option value="MISSING">Missing</option>
                 </select>
               </div>
             </div>
@@ -439,6 +440,20 @@ export const CreateAssetModal: React.FC<CreateAssetModalProps> = ({
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-orange-50/50 border border-orange-100 rounded-2xl flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                  Initial Book Value (RWF)
+                </p>
+                <p className="text-sm font-black text-[#e49f37]">
+                  {Number(formData.purchase_cost || 0).toLocaleString()} RWF
+                </p>
+              </div>
+              <p className="text-[10px] text-orange-500 font-bold italic uppercase tracking-wider">
+                Automated Baseline
+              </p>
             </div>
           </div>
         </form>

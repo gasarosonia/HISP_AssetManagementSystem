@@ -1,19 +1,98 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsEnum, IsUUID, IsArray, ValidateNested, IsNumber, Min, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export enum UrgencyLevel {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL',
+}
+
+class RequestItemDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsNumber()
+  @Min(1)
+  quantity: number;
+
+  @IsNumber()
+  @Min(0)
+  unit_price: number;
+}
+
+class FinancialsDto {
+  @IsEnum(['BUDGET', 'MARKET_RESEARCH'])
+  cost_basis: string;
+
+  @IsNumber()
+  @Min(0)
+  transport_fees: number;
+
+  @IsNumber()
+  subtotal: number;
+
+  @IsNumber()
+  grand_total: number;
+
+  @IsString()
+  @IsOptional()
+  budget_code_1?: string;
+
+  @IsString()
+  @IsOptional()
+  budget_code_2?: string;
+}
+
+class LogisticsDto {
+  @IsString()
+  @IsNotEmpty()
+  destination: string;
+
+  @IsString()
+  @IsOptional()
+  contact_name?: string;
+
+  @IsString()
+  @IsOptional()
+  contact_email?: string;
+
+  @IsString()
+  @IsOptional()
+  contact_phone?: string;
+}
 
 export class CreateAssetRequestDto {
-  @ApiProperty({ description: 'UUID of the user making the request' })
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+
   @IsUUID()
   @IsNotEmpty()
-  requester_id: string;
+  requested_by_id: string;
 
-  @ApiProperty({ example: 'Need a new monitor for the data team' })
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
-  description: string;
+  department_id: string;
 
-  @ApiPropertyOptional({ example: 'Q3-IT-001' })
-  @IsOptional()
-  @IsString()
-  budget_code?: string;
+  @IsEnum(UrgencyLevel)
+  urgency: UrgencyLevel;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RequestItemDto)
+  items: RequestItemDto[];
+
+  @ValidateNested()
+  @Type(() => FinancialsDto)
+  financials: FinancialsDto;
+
+  @ValidateNested()
+  @Type(() => LogisticsDto)
+  logistics: LogisticsDto;
 }

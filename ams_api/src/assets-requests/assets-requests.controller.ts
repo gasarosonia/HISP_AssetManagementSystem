@@ -5,7 +5,7 @@ import { UpdateAssetRequestDto } from './dto/update-assets-request.dto';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Asset Requests Workflow')
-@Controller('asset-requests')
+@Controller('assets-requests')
 export class AssetRequestsController {
   constructor(private readonly assetRequestsService: AssetRequestsService) {}
 

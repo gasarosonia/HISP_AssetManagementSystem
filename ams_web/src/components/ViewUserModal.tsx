@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Mail, Shield, Building2, Activity, Briefcase } from 'lucide-react';
 
 interface User {
@@ -15,11 +14,11 @@ interface ViewUserModalProps {
   user: User | null;
 }
 
-export const ViewUserModal: React.FC<ViewUserModalProps> = ({
+export const ViewUserModal = ({
   isOpen,
   onClose,
   user,
-}) => {
+}: ViewUserModalProps) => {
   if (!isOpen || !user) return null;
 
   const initials = user.full_name

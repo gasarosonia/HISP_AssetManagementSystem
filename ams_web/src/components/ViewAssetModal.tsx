@@ -6,8 +6,11 @@ import {
   User,
   MapPin,
   Activity,
+  Trash2,
+  Clock,
+  Calendar,
 } from 'lucide-react';
-import { Asset } from '../pages/Assets';
+import { Asset } from '@/types/assets';
 
 interface ViewAssetModalProps {
   isOpen: boolean;
@@ -15,12 +18,28 @@ interface ViewAssetModalProps {
   asset: Asset | null;
 }
 
-export const ViewAssetModal: React.FC<ViewAssetModalProps> = ({
+export const ViewAssetModal = ({
   isOpen,
   onClose,
   asset,
-}) => {
+}: ViewAssetModalProps) => {
   if (!isOpen || !asset) return null;
+
+  const calculateMonths = () => {
+    if (!asset.purchase_date) return null;
+    const start = new Date(asset.purchase_date);
+    const end =
+      asset.status === 'DISPOSED' && asset.disposal_date
+        ? new Date(asset.disposal_date)
+        : new Date();
+
+    const months =
+      (end.getFullYear() - start.getFullYear()) * 12 +
+      (end.getMonth() - start.getMonth());
+    return Math.max(0, months);
+  };
+
+  const assetAgeMonths = calculateMonths();
 
   return (
     <>
@@ -71,6 +90,26 @@ export const ViewAssetModal: React.FC<ViewAssetModalProps> = ({
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-600">
                 {asset.status.replace('_', ' ')}
               </span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1">
+                <Calendar className="w-3 h-3" /> Purchase Date
+              </p>
+              <p className="text-sm font-bold text-slate-700">
+                {asset.purchase_date
+                  ? new Date(asset.purchase_date).toLocaleDateString()
+                  : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1">
+                <Clock className="w-3 h-3" /> System Age
+              </p>
+              <p className="text-sm font-bold text-slate-700">
+                {assetAgeMonths !== null
+                  ? `${assetAgeMonths} ${assetAgeMonths === 1 ? 'Month' : 'Months'}`
+                  : 'N/A'}
+              </p>
             </div>
           </div>
 
@@ -134,6 +173,42 @@ export const ViewAssetModal: React.FC<ViewAssetModalProps> = ({
               </div>
             </div>
           </div>
+
+          {asset.status === 'DISPOSED' && (
+            <div className="bg-red-50/50 rounded-2xl p-4 border border-red-100 space-y-3">
+              <h3 className="text-xs font-black text-red-600 uppercase tracking-widest border-b border-red-100 pb-2 flex items-center gap-2">
+                <Trash2 className="w-3.5 h-3.5" /> Disposal Registry
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
+                    Disposal Date
+                  </p>
+                  <p className="text-xs font-bold text-slate-700">
+                    {asset.disposal_date
+                      ? new Date(asset.disposal_date).toLocaleDateString()
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
+                    Recovery Value
+                  </p>
+                  <p className="text-xs font-bold text-slate-700">
+                    {Number(asset.disposal_value || 0).toLocaleString()} RWF
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
+                    Reason
+                  </p>
+                  <p className="text-xs font-medium text-slate-600 italic">
+                    "{asset.disposal_reason || 'No reason provided'}"
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {asset.description && (
             <div>

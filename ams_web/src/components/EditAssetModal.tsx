@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Laptop, Hash, Building2, Save } from 'lucide-react';
+import { X, Laptop, Hash, Building2, Save, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
-import { Asset, Category } from '../pages/Assets';
+import { Category, Asset } from '@/types/assets';
 
 interface User {
   id: string;
@@ -18,11 +18,11 @@ interface EditAssetModalProps {
   asset: Asset | null;
 }
 
-export const EditAssetModal: React.FC<EditAssetModalProps> = ({
+export const EditAssetModal = ({
   isOpen,
   onClose,
   asset,
-}) => {
+}: EditAssetModalProps) => {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -206,9 +206,8 @@ export const EditAssetModal: React.FC<EditAssetModalProps> = ({
                 >
                   <option value="IN_STOCK">In Stock</option>
                   <option value="ASSIGNED">Assigned</option>
-                  <option value="UNDER_REPAIR">Under Repair</option>
+                  <option value="BROKEN">Broken</option>
                   <option value="MISSING">Missing</option>
-                  <option value="DISPOSED">Disposed</option>
                 </select>
               </div>
             </div>
@@ -335,6 +334,56 @@ export const EditAssetModal: React.FC<EditAssetModalProps> = ({
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm font-medium"
                 />
               </div>
+
+              <div className="space-y-2 group col-span-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Current Book Value (RWF)
+                </label>
+                <div className="w-full px-4 py-2.5 bg-orange-50/50 border border-orange-100 rounded-xl text-sm font-bold text-slate-700 flex items-center justify-between">
+                  <span>
+                    {Number(asset.current_value || 0).toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-orange-500 uppercase tracking-widest">
+                    Calculated
+                  </span>
+                </div>
+              </div>
+
+              {formData.status === 'DISPOSED' && (
+                <div className="bg-red-50/30 rounded-2xl p-5 border border-red-100 space-y-4 col-span-2">
+                  <h3 className="text-xs font-black text-red-600 uppercase tracking-widest flex items-center gap-2 border-b border-red-100 pb-2">
+                    <Trash2 className="w-4 h-4" /> Disposal Settlement
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Recovery Value
+                      </label>
+                      <p className="text-sm font-bold text-slate-700">
+                        {Number(asset.disposal_value || 0).toLocaleString()} RWF
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Disposal Date
+                      </label>
+                      <p className="text-sm font-bold text-slate-700">
+                        {asset.disposal_date
+                          ? new Date(asset.disposal_date).toLocaleDateString()
+                          : 'N/A'}
+                      </p>
+                    </div>
+                    <div className="space-y-1 col-span-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Disposal Reason
+                      </label>
+                      <p className="text-sm font-medium text-slate-600 italic leading-relaxed">
+                        "{asset.disposal_reason || 'No reason specified'}"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </form>

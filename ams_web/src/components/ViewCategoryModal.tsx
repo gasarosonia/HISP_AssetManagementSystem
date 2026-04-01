@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Tag, Percent, ArrowDownToLine } from 'lucide-react';
 import {
   Dialog,
@@ -19,11 +18,11 @@ interface ViewCategoryModalProps {
   } | null;
 }
 
-export const ViewCategoryModal: React.FC<ViewCategoryModalProps> = ({
+export const ViewCategoryModal = ({
   isOpen,
   onClose,
   category,
-}) => {
+}: ViewCategoryModalProps) => {
   if (!category) return null;
 
   return (

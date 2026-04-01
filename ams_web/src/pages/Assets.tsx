@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -22,6 +22,7 @@ import {
   Car,
   Box,
   Activity,
+  Archive,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
@@ -31,31 +32,9 @@ import { CreateAssetModal } from '@/components/CreateAssetModal';
 import { EditAssetModal } from '../components/EditAssetModal';
 import { ViewAssetModal } from '../components/ViewAssetModal';
 import { ViewCategoryModal } from '../components/ViewCategoryModal';
+import { DisposeAssetModal } from '../components/DisposeAssetModal';
 
-export interface Category {
-  id: string;
-  name: string;
-  depreciation_rate: number;
-  salvage_rate: number;
-}
-
-export interface Asset {
-  id: string;
-  name: string;
-  tag_id: string;
-  serial_number: string;
-  description?: string;
-  status: 'IN_STOCK' | 'ASSIGNED' | 'UNDER_REPAIR' | 'MISSING' | 'DISPOSED';
-  location: string;
-  category?: { id: string; name: string };
-  department?: { id: string; name: string };
-  assigned_to?: { id: string; full_name: string };
-  purchase_cost?: number;
-  purchase_date?: string;
-  warranty_expiry?: string;
-  current_value?: number;
-  accumulated_depreciation?: number;
-}
+import { Category, Asset } from '@/types/assets';
 
 const getCategoryIcon = (categoryName?: string) => {
   const name = (categoryName || '').toLowerCase();
@@ -107,6 +86,7 @@ export const Assets = () => {
   const [assetToView, setAssetToView] = useState<Asset | null>(null);
   const [assetToEdit, setAssetToEdit] = useState<Asset | null>(null);
   const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
+  const [assetToDispose, setAssetToDispose] = useState<Asset | null>(null);
 
   const { data: categories, isLoading: loadingCats } = useQuery<Category[]>({
     queryKey: ['categories'],
@@ -127,7 +107,7 @@ export const Assets = () => {
   const filteredAssets = useMemo(() => {
     if (!assets) return [];
 
-    let filtered = assets;
+    let filtered = assets.filter(a => a.status !== 'DISPOSED');
 
     if (selectedCategory) {
       filtered = filtered.filter((a) => a.category?.id === selectedCategory.id);
@@ -183,13 +163,13 @@ export const Assets = () => {
     },
   });
 
-  const handleEditClick = (e: React.MouseEvent, cat: Category) => {
+  const handleEditClick = (e: React.SyntheticEvent, cat: Category) => {
     e.stopPropagation();
     setCatToEdit(cat);
     setIsEditCatModalOpen(true);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, cat: Category) => {
+  const handleDeleteClick = (e: React.SyntheticEvent, cat: Category) => {
     e.stopPropagation();
     setCatToDelete(cat);
   };
@@ -200,12 +180,10 @@ export const Assets = () => {
         return 'bg-emerald-50 text-emerald-600 border-emerald-100';
       case 'ASSIGNED':
         return 'bg-blue-50 text-blue-600 border-blue-100';
-      case 'UNDER_REPAIR':
+      case 'BROKEN':
         return 'bg-amber-50 text-amber-600 border-amber-100';
       case 'MISSING':
         return 'bg-red-50 text-red-600 border-red-100';
-      case 'DISPOSED':
-        return 'bg-slate-50 text-slate-500 border-slate-100';
       default:
         return 'bg-slate-50 text-slate-500 border-slate-100';
     }
@@ -216,8 +194,8 @@ export const Assets = () => {
       <div className="flex flex-col h-full animate-in fade-in duration-500">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tight">
-              Asset Masterlist
+            <h1 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              Asset Masterlist {isAdmin ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">ADMIN MODE</span> : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full">USER MODE</span>}
             </h1>
             <p className="text-slate-500 text-sm mt-0.5">
               Select a category to view and manage inventory.
@@ -253,7 +231,7 @@ export const Assets = () => {
                     <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center group-hover:bg-[#ff8000] transition-colors shadow-inner">
                       <CategoryIcon className="w-6 h-6 text-[#ff8000] group-hover:text-white transition-colors" />
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -429,7 +407,7 @@ export const Assets = () => {
               className="bg-[#ff8000] hover:bg-[#e49f37] text-white px-4 py-2 rounded-xl font-bold shadow-[0_8px_16px_-6px_rgba(255,128,0,0.4)] transform active:scale-95 transition-all flex items-center gap-2 group text-sm"
             >
               <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />{' '}
-              Add Asset
+              Assign Asset
             </button>
           </div>
         </div>
@@ -571,7 +549,7 @@ export const Assets = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-1 transition-opacity">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -594,6 +572,18 @@ export const Assets = () => {
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
+                              {asset.status !== 'DISPOSED' && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAssetToDispose(asset);
+                                  }}
+                                  className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                  title="Dispose Asset"
+                                >
+                                  <Archive className="w-4 h-4" />
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -635,6 +625,11 @@ export const Assets = () => {
         isOpen={!!assetToEdit}
         onClose={() => setAssetToEdit(null)}
         asset={assetToEdit}
+      />
+      <DisposeAssetModal
+        isOpen={!!assetToDispose}
+        onClose={() => setAssetToDispose(null)}
+        asset={assetToDispose}
       />
       {assetToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

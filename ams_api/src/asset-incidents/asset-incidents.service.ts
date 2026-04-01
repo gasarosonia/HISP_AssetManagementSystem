@@ -36,7 +36,7 @@ export class AssetIncidentsService {
       });
       if (!asset) throw new NotFoundException('Asset not found');
 
-      asset.status = dto.type === 'MISSING' ? 'MISSING' : 'UNDER_REPAIR';
+      asset.status = dto.type === 'MISSING' ? 'MISSING' : 'BROKEN';
       await queryRunner.manager.save(asset);
       const incident = queryRunner.manager.create(AssetIncident, {
         asset: { id: dto.asset_id },

@@ -1,4 +1,4 @@
-import { useState, useMemo, MouseEvent } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -107,13 +107,13 @@ export const Directorate = () => {
     },
   });
 
-  const handleEditClick = (e: MouseEvent, dept: Department) => {
+  const handleEditClick = (e: React.SyntheticEvent, dept: Department) => {
     e.stopPropagation();
     setDeptToEdit(dept);
     setIsEditModalOpen(true);
   };
 
-  const handleDeleteClick = (e: MouseEvent, dept: Department) => {
+  const handleDeleteClick = (e: React.SyntheticEvent, dept: Department) => {
     e.stopPropagation();
     setDeptToDelete(dept);
   };
@@ -171,7 +171,7 @@ export const Directorate = () => {
                   </div>
 
                   {isAdmin && (
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -438,24 +438,23 @@ export const Directorate = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${
-                        [
-                          'Admin and Finance Director',
-                          'Finance Officer',
-                          'Operations Officer',
-                          'SYSTEM_ADMIN',
-                        ].includes(user.role)
-                          ? 'bg-orange-50 text-[#ff8000] border-orange-100'
-                          : user.role === 'HOD'
-                            ? 'bg-blue-50 text-blue-600 border-blue-100'
-                            : 'bg-slate-50 text-slate-500 border-slate-100'
-                      }`}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${[
+                        'Admin and Finance Director',
+                        'Finance Officer',
+                        'Operations Officer',
+                        'SYSTEM_ADMIN',
+                      ].includes(user.role)
+                        ? 'bg-orange-50 text-[#ff8000] border-orange-100'
+                        : user.role === 'HOD'
+                          ? 'bg-blue-50 text-blue-600 border-blue-100'
+                          : 'bg-slate-50 text-slate-500 border-slate-100'
+                        }`}
                     >
                       <Shield className="w-3 h-3" /> {user.role}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-1 transition-opacity">
                       {isAdmin && (
                         <>
                           <button

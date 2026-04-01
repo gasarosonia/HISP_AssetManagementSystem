@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Building2, Activity, Briefcase, Users, Layout } from 'lucide-react';
 
 interface Department {
@@ -14,11 +13,11 @@ interface ViewDepartmentModalProps {
   department: Department | null;
 }
 
-export const ViewDepartmentModal: React.FC<ViewDepartmentModalProps> = ({
+export const ViewDepartmentModal = ({
   isOpen,
   onClose,
   department,
-}) => {
+}: ViewDepartmentModalProps) => {
   if (!isOpen || !department) return null;
 
   const workplace =

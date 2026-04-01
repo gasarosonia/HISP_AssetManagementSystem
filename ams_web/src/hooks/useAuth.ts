@@ -9,18 +9,18 @@ export const useAuth = () => {
 
   const { user } = context;
 
+  const role = user?.role?.toUpperCase() || '';
+  const deptName = user?.department?.name?.toUpperCase() || '';
+
   const isAdmin =
-    user?.role === 'SYSTEM_ADMIN' ||
-    [
-      'Admin and Finance',
-      'Admin & Finance',
-      'Admin and Finance Directorate',
-    ].includes(user?.department?.name || '') ||
-    [
-      'Admin and Finance Director',
-      'Finance Officer',
-      'Operations Officer',
-    ].includes(user?.role || '');
+    role === 'SYSTEM_ADMIN' ||
+    role === 'ADMIN' ||
+    role.includes('ADMIN') ||
+    role.includes('FINANCE') ||
+    role.includes('DIRECTOR') ||
+    role.includes('OFFICER') ||
+    deptName.includes('FINANCE') ||
+    deptName.includes('ADMIN');
 
   return { ...context, isAdmin };
 };

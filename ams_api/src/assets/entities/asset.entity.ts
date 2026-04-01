@@ -30,7 +30,7 @@ export class Asset {
 
   @Column({
     type: 'enum',
-    enum: ['IN_STOCK', 'ASSIGNED', 'UNDER_REPAIR', 'MISSING', 'DISPOSED'],
+    enum: ['IN_STOCK', 'ASSIGNED', 'BROKEN', 'MISSING', 'DISPOSED'],
     default: 'IN_STOCK',
   })
   status: string;
