@@ -41,12 +41,11 @@ export const AuthProvider = ({
     setUser(null);
   };
 
-  const Provider = AuthContext.Provider as any;
   return (
-    <Provider
+    <AuthContext.Provider
       value={{ user, token, login, logout, isAuthenticated: !!token }}
     >
       {children}
-    </Provider>
-  ) as React.ReactElement;
+    </AuthContext.Provider>
+  );
 };

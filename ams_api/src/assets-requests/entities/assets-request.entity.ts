@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Department } from '../../departments/entities/department.entity';
 
@@ -10,10 +18,18 @@ export class AssetRequest {
   @Column()
   title: string;
 
-  @Column({ type: 'enum', enum: ['PENDING', 'APPROVED', 'REJECTED', 'FULFILLED'], default: 'PENDING' })
+  @Column({
+    type: 'enum',
+    enum: ['PENDING', 'APPROVED', 'REJECTED', 'FULFILLED'],
+    default: 'PENDING',
+  })
   status: string;
 
-  @Column({ type: 'enum', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], default: 'MEDIUM' })
+  @Column({
+    type: 'enum',
+    enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
+    default: 'MEDIUM',
+  })
   urgency: string;
 
   @ManyToOne(() => User)

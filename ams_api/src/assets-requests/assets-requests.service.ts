@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AssetRequest } from './entities/assets-request.entity';
 import { User } from 'src/users/entities/user.entity';
+import { Department } from 'src/departments/entities/department.entity';
 import { CreateAssetRequestDto } from './dto/create-assets-request.dto';
 import { UpdateAssetRequestDto } from './dto/update-assets-request.dto';
 
@@ -11,10 +12,13 @@ export class AssetRequestsService {
   constructor(
     @InjectRepository(AssetRequest)
     private readonly requestRepo: Repository<AssetRequest>,
-  ) { }
+  ) {}
 
-  async create(dto: CreateAssetRequestDto, currentUserId?: string): Promise<AssetRequest> {
-    const userId = currentUserId || (dto as any).requested_by;
+  async create(
+    dto: CreateAssetRequestDto,
+    currentUserId?: string,
+  ): Promise<AssetRequest> {
+    const userId = currentUserId || dto.requested_by_id;
 
     const request = this.requestRepo.create({
       title: dto.title,
@@ -22,8 +26,8 @@ export class AssetRequestsService {
       items: dto.items,
       financials: dto.financials,
       logistics: dto.logistics,
-      department: { id: dto.department_id } as any,
-      requested_by: { id: userId } as User,
+      department: { id: dto.department_id } as unknown as Department,
+      requested_by: { id: userId } as unknown as User,
       status: 'PENDING',
     });
 
@@ -59,7 +63,9 @@ export class AssetRequestsService {
     // Custom Approval Logic (CEO & Finance)
     if (dto.ceo_remarks) request.ceo_remarks = dto.ceo_remarks;
     if (dto.verified_by_finance_id) {
-      request.verified_by_finance = { id: dto.verified_by_finance_id } as User;
+      request.verified_by_finance = {
+        id: dto.verified_by_finance_id,
+      } as unknown as User;
     }
 
     return await this.requestRepo.save(request);

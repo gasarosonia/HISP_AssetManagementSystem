@@ -107,7 +107,7 @@ export const Assets = () => {
   const filteredAssets = useMemo(() => {
     if (!assets) return [];
 
-    let filtered = assets.filter(a => a.status !== 'DISPOSED');
+    let filtered = assets.filter((a) => a.status !== 'DISPOSED');
 
     if (selectedCategory) {
       filtered = filtered.filter((a) => a.category?.id === selectedCategory.id);
@@ -195,7 +195,16 @@ export const Assets = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
           <div>
             <h1 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-              Asset Masterlist {isAdmin ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">ADMIN MODE</span> : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full">USER MODE</span>}
+              Asset Masterlist{' '}
+              {isAdmin ? (
+                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                  ADMIN MODE
+                </span>
+              ) : (
+                <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                  USER MODE
+                </span>
+              )}
             </h1>
             <p className="text-slate-500 text-sm mt-0.5">
               Select a category to view and manage inventory.

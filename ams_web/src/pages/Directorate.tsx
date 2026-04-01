@@ -438,17 +438,18 @@ export const Directorate = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${[
-                        'Admin and Finance Director',
-                        'Finance Officer',
-                        'Operations Officer',
-                        'SYSTEM_ADMIN',
-                      ].includes(user.role)
-                        ? 'bg-orange-50 text-[#ff8000] border-orange-100'
-                        : user.role === 'HOD'
-                          ? 'bg-blue-50 text-blue-600 border-blue-100'
-                          : 'bg-slate-50 text-slate-500 border-slate-100'
-                        }`}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${
+                        [
+                          'Admin and Finance Director',
+                          'Finance Officer',
+                          'Operations Officer',
+                          'SYSTEM_ADMIN',
+                        ].includes(user.role)
+                          ? 'bg-orange-50 text-[#ff8000] border-orange-100'
+                          : user.role === 'HOD'
+                            ? 'bg-blue-50 text-blue-600 border-blue-100'
+                            : 'bg-slate-50 text-slate-500 border-slate-100'
+                      }`}
                     >
                       <Shield className="w-3 h-3" /> {user.role}
                     </div>

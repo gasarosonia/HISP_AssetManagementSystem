@@ -42,8 +42,9 @@ export const DisposeAssetModal = ({
       await api.patch(`/assets/${asset.id}/dispose`, payload);
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to dispose asset.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to dispose asset.');
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +88,10 @@ export const DisposeAssetModal = ({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 p-8 space-y-6 overflow-y-auto">
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 p-8 space-y-6 overflow-y-auto"
+        >
           {error && (
             <div className="p-4 bg-red-50 border border-red-100 text-red-600 text-sm font-bold rounded-xl">
               {error}
@@ -104,7 +108,9 @@ export const DisposeAssetModal = ({
                 required
                 type="date"
                 value={formData.disposal_date}
-                onChange={(e) => setFormData({ ...formData, disposal_date: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, disposal_date: e.target.value })
+                }
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm font-medium"
               />
             </div>
@@ -121,11 +127,15 @@ export const DisposeAssetModal = ({
                 type="number"
                 min="0"
                 value={formData.disposal_value}
-                onChange={(e) => setFormData({ ...formData, disposal_value: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, disposal_value: e.target.value })
+                }
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm font-medium"
               />
             </div>
-            <p className="text-[10px] text-slate-400 italic">Enter 0 if the asset is missing, destroyed, or stolen.</p>
+            <p className="text-[10px] text-slate-400 italic">
+              Enter 0 if the asset is missing, destroyed, or stolen.
+            </p>
           </div>
 
           <div className="space-y-2 group">
@@ -138,7 +148,9 @@ export const DisposeAssetModal = ({
                 required
                 rows={4}
                 value={formData.disposal_reason}
-                onChange={(e) => setFormData({ ...formData, disposal_reason: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, disposal_reason: e.target.value })
+                }
                 placeholder="e.g., Damaged beyond repair, End of lifecycle sale, etc."
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-sm font-medium"
               />
