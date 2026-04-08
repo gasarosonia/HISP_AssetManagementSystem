@@ -55,6 +55,9 @@ export class AssetRequest {
   @Column({ type: 'text', nullable: true })
   ceo_remarks: string;
 
+  @Column({ type: 'boolean', default: false })
+  is_shared: boolean;
+
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'verified_by_finance_id' })
   verified_by_finance: User;

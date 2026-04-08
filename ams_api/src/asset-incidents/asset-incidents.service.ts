@@ -60,7 +60,12 @@ export class AssetIncidentsService {
 
   async findAll() {
     return this.incidentRepo.find({
-      relations: ['asset', 'reported_by', 'replacement_request'],
+      relations: [
+        'asset',
+        'reported_by',
+        'reported_by.department',
+        'replacement_request',
+      ],
       order: { reported_at: 'DESC' },
     });
   }
@@ -92,6 +97,7 @@ export class AssetIncidentsService {
       }
 
       incident.investigation_status = resolution;
+      incident.investigation_remarks = remarks;
 
       if (resolution === 'ACCEPTED') {
         const request = queryRunner.manager.create(AssetRequest, {

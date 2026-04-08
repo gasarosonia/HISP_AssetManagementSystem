@@ -13,6 +13,14 @@ export interface User {
   department?: { id: string; name: string };
 }
 
+export interface AssetAssignment {
+  id: string;
+  user: User;
+  assigned_at: string;
+  returned_at?: string;
+  condition_on_assign?: string;
+}
+
 export interface Asset {
   id: string;
   name: string;
@@ -32,6 +40,7 @@ export interface Asset {
   disposal_value?: number;
   disposal_date?: string;
   disposal_reason?: string;
+  assignment_history?: AssetAssignment[];
 }
 
 export interface AssetRequest {
@@ -76,6 +85,7 @@ export interface AssetIncident {
   evidence_url?: string;
   investigation_status: 'INVESTIGATING' | 'ACCEPTED' | 'DENIED';
   investigation_remarks?: string;
+  penalty_amount?: number;
   resolved_at?: string;
   reported_at: string;
 }

@@ -43,6 +43,9 @@ export class AssetIncident {
   @Column('numeric', { precision: 12, scale: 2, nullable: true })
   penalty_amount: number;
 
+  @Column({ type: 'text', nullable: true })
+  investigation_remarks: string;
+
   @OneToOne(() => AssetRequest, { nullable: true })
   @JoinColumn({ name: 'replacement_request_id' })
   replacement_request: AssetRequest;

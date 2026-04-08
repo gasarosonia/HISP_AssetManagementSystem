@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ShieldAlert,
@@ -16,16 +17,21 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { ResolveIncidentModal } from '../components/ResolveIncidentModal';
+import { ViewIncidentModal } from '../components/ViewIncidentModal';
 import { useAuth } from '../hooks/useAuth';
 import { AssetIncident } from '../types/assets';
 
 export const Incidents = () => {
-  const { isFinanceAdmin, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const { isFinanceAdmin, isAdmin, isHOD, user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [selectedIncident, setSelectedIncident] =
     useState<AssetIncident | null>(null);
+  const [incidentToView, setIncidentToView] = useState<AssetIncident | null>(
+    null,
+  );
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
 
   const { data: incidents, isLoading } = useQuery<AssetIncident[]>({
@@ -39,6 +45,14 @@ export const Incidents = () => {
   const filteredIncidents = useMemo(() => {
     if (!incidents) return [];
     let result = incidents;
+
+    if (isHOD && !isAdmin && !isFinanceAdmin) {
+      result = result.filter(
+        (i) =>
+          i.reported_by?.department?.id === user?.department?.id ||
+          i.asset?.department?.id === user?.department?.id,
+      );
+    }
 
     if (filterType !== 'ALL') {
       result = result.filter((i) => i.incident_type === filterType);
@@ -59,20 +73,41 @@ export const Incidents = () => {
     }
 
     return result;
-  }, [incidents, filterType, filterStatus, searchQuery]);
+  }, [
+    incidents,
+    filterType,
+    filterStatus,
+    searchQuery,
+    isAdmin,
+    isFinanceAdmin,
+    isHOD,
+    user,
+  ]);
 
   const stats = useMemo(() => {
     if (!incidents) return { investigating: 0, accepted: 0, denied: 0 };
+
+    let filteredForStats = incidents;
+    if (isHOD && !isAdmin && !isFinanceAdmin) {
+      filteredForStats = incidents.filter(
+        (i) =>
+          i.reported_by?.department?.id === user?.department?.id ||
+          i.asset?.department?.id === user?.department?.id,
+      );
+    }
+
     return {
-      investigating: incidents.filter(
+      investigating: filteredForStats.filter(
         (i) => i.investigation_status === 'INVESTIGATING',
       ).length,
-      accepted: incidents.filter((i) => i.investigation_status === 'ACCEPTED')
-        .length,
-      denied: incidents.filter((i) => i.investigation_status === 'DENIED')
-        .length,
+      accepted: filteredForStats.filter(
+        (i) => i.investigation_status === 'ACCEPTED',
+      ).length,
+      denied: filteredForStats.filter(
+        (i) => i.investigation_status === 'DENIED',
+      ).length,
     };
-  }, [incidents]);
+  }, [incidents, isHOD, isAdmin, isFinanceAdmin, user]);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -92,7 +127,88 @@ export const Incidents = () => {
     setIsResolveModalOpen(true);
   };
 
-  if (!isAdmin && !isFinanceAdmin) {
+  const getDepartmentName = (inc: AssetIncident) => {
+    // Try asset department
+    if (typeof inc.asset?.department === 'string') return inc.asset.department;
+    if (inc.asset?.department?.name) return inc.asset.department.name;
+
+    // Try reporter department
+    if (typeof inc.reported_by?.department === 'string')
+      return inc.reported_by.department;
+    if (inc.reported_by?.department?.name)
+      return inc.reported_by.department.name;
+
+    // Default fallbacks
+    return 'Operations / Central';
+  };
+
+  const getInvestigationRemarks = (inc: AssetIncident) => {
+    return inc.investigation_remarks || '';
+  };
+
+  const handleExportLogs = () => {
+    if (!filteredIncidents.length) return;
+
+    // CSV Headers
+    const headers = [
+      'Incident ID',
+      'Date Reported',
+      'Incident Type',
+      'Asset Name',
+      'Tag ID',
+      'Serial Number',
+      'Reporter',
+      'Department',
+      'Investigation Status',
+      'Explanation',
+      'Resolution Remarks',
+    ];
+
+    // Helper to escape CSV values
+    const escapeCSV = (val: string) => {
+      if (val === null || val === undefined) return '';
+      const stringified = String(val);
+      // Escape double quotes and wrap in double quotes
+      return `"${stringified.replace(/"/g, '""')}"`;
+    };
+
+    // Map data to rows
+    const rows = filteredIncidents.map((inc) => [
+      escapeCSV(`#${inc.id.slice(0, 8).toUpperCase()}`),
+      escapeCSV(new Date(inc.reported_at).toLocaleDateString()),
+      escapeCSV(inc.incident_type),
+      escapeCSV(inc.asset?.name || 'N/A'),
+      escapeCSV(inc.asset?.tag_id || 'N/A'),
+      escapeCSV(inc.asset?.serial_number || 'N/A'),
+      escapeCSV(inc.reported_by?.full_name || 'N/A'),
+      escapeCSV(getDepartmentName(inc)),
+      escapeCSV(inc.investigation_status),
+      escapeCSV(inc.explanation || ''),
+      escapeCSV(getInvestigationRemarks(inc)),
+    ]);
+
+    // Construct CSV string
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.join(',')),
+    ].join('\n');
+
+    // Create download link with BOM for Excel UTF-8 support
+    const blob = new Blob(['\ufeff' + csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `investigation_logs_${dateStr}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (!isAdmin && !isFinanceAdmin && !isHOD) {
     return (
       <div className="flex flex-col h-[70vh] items-center justify-center text-center animate-in fade-in duration-700">
         <div className="w-20 h-20 bg-red-50 rounded-[2rem] flex items-center justify-center mb-6 border border-red-100">
@@ -102,116 +218,122 @@ export const Incidents = () => {
           Access Restricted
         </h1>
         <p className="text-slate-500 font-medium max-w-sm">
-          Investigations and audit logs are only accessible to Administration
-          and Finance personnel.
+          Investigations and audit logs are only accessible to Administration,
+          Finance, and Department Heads.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+    <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-1.5 h-1.5 bg-[#ff8000] rounded-full" />
-            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#ff8000]">
-              Security & Audit
-            </h4>
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+          <h1 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+            <ShieldAlert className="w-5 h-5 text-[#ff8000]" />
             Investigations
           </h1>
-          <p className="text-slate-500 font-medium mt-3 text-xs max-w-xl leading-relaxed">
-            Audit logs for broken or missing equipment. Investigation outcomes
-            determine replacement eligibility or staff penalties.
+          <p className="text-slate-500 text-[10px] font-medium">
+            Audit logs for broken or missing equipment and outcomes.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button className="px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-sm hover:bg-slate-50 flex items-center gap-2 group">
-            <Download className="w-4 h-4 text-[#ff8000]" /> Export Logs
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportLogs}
+            className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-sm hover:bg-slate-50 flex items-center gap-2 group"
+          >
+            <Download className="w-3.5 h-3.5 text-[#ff8000]" /> Export Logs
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-lg bg-amber-50 flex items-center justify-center shadow-inner border border-amber-100">
-            <Clock className="w-5 h-5 text-amber-500" />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5 leading-none">
-              Open Cases
-            </p>
-            <p className="text-xl font-black text-slate-900 leading-none">
-              {stats.investigating}{' '}
-              <span className="text-[9px] font-bold text-slate-400">
-                INVESTIGATIONS
-              </span>
-            </p>
-          </div>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-lg bg-emerald-50 flex items-center justify-center shadow-inner border border-emerald-100">
-            <ShieldCheck className="w-5 h-5 text-emerald-500" />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5 leading-none">
-              Accepted
-            </p>
-            <p className="text-xl font-black text-slate-900 leading-none">
-              {stats.accepted}{' '}
-              <span className="text-[9px] font-bold text-slate-400">
-                REPLACEMENTS
-              </span>
-            </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+        <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center border border-amber-100">
+              <Clock className="w-4 h-4 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
+                Open Cases
+              </p>
+              <h3 className="text-lg font-black text-slate-800 leading-none">
+                {stats.investigating}{' '}
+                <span className="text-[9px] font-bold text-slate-400">
+                  PENDING
+                </span>
+              </h3>
+            </div>
           </div>
         </div>
-        <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-lg bg-red-50 flex items-center justify-center shadow-inner border border-red-100">
-            <ShieldX className="w-5 h-5 text-red-500" />
-          </div>
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5 leading-none">
-              Denied
-            </p>
-            <p className="text-xl font-black text-slate-900 leading-none">
-              {stats.denied}{' '}
-              <span className="text-[9px] font-bold text-slate-400">
-                PENALTIES
-              </span>
-            </p>
+        <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center border border-emerald-100">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
+                Accepted
+              </p>
+              <h3 className="text-lg font-black text-emerald-600 leading-none">
+                {stats.accepted}{' '}
+                <span className="text-[9px] font-bold text-emerald-300">
+                  RESOLVED
+                </span>
+              </h3>
+            </div>
           </div>
         </div>
+        <button
+          onClick={() => navigate('/penalties')}
+          className="bg-white p-3 rounded-xl border border-rose-100 shadow-sm flex items-center justify-between hover:scale-105 hover:shadow-md transition-all group text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center border border-red-100 group-hover:bg-red-100 transition-colors">
+              <ShieldX className="w-4 h-4 text-red-500" />
+            </div>
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5 group-hover:text-red-400 transition-colors">
+                Denied
+              </p>
+              <h3 className="text-lg font-black text-rose-600 leading-none">
+                {stats.denied}{' '}
+                <span className="text-[9px] font-bold text-rose-300">
+                  PENALTIES
+                </span>
+              </h3>
+            </div>
+          </div>
+        </button>
       </div>
 
-      <div className="bg-white/60 backdrop-blur-xl border border-white p-2.5 rounded-2xl shadow-lg mb-8 flex flex-col md:flex-row gap-4">
+      <div className="bg-white/60 backdrop-blur-md border border-white p-1.5 rounded-xl shadow-sm mb-3 flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search by asset, tag, or personnel..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent border-none pl-12 pr-4 py-2.5 text-xs font-black text-slate-700 placeholder:text-slate-400 outline-none"
+            className="w-full bg-transparent border-none pl-10 pr-4 py-2 text-sm focus:ring-0 outline-none font-medium text-slate-700 placeholder:text-slate-400"
           />
         </div>
-        <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+        <div className="flex gap-1.5 p-1 bg-slate-100/50 rounded-lg">
           {['ALL', 'BROKEN', 'MISSING'].map((type) => (
             <button
               key={type}
               onClick={() => setFilterType(type)}
-              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterType === type ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-4 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${filterType === type ? 'bg-white text-[#ff8000] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
             >
               {type}
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
+        <div className="flex">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest text-slate-600 outline-none focus:ring-2 focus:ring-[#ff8000]/10"
+            className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-600 outline-none focus:ring-1 focus:ring-[#ff8000]/20"
           >
             <option value="ALL">All Status</option>
             <option value="INVESTIGATING">INVESTIGATING</option>
@@ -233,10 +355,10 @@ export const Incidents = () => {
                   Affected Asset
                 </th>
                 <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Reporter
+                  Reporter & Department
                 </th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
-                  Status
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Status & Outcome
                 </th>
                 <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
                   Actions
@@ -302,18 +424,31 @@ export const Incidents = () => {
                           <UserIcon className="w-3.5 h-3.5 text-slate-400" />{' '}
                           {inc.reported_by?.full_name}
                         </span>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <span className="text-[8px] font-black text-[#ff8000] uppercase tracking-widest">
+                          {getDepartmentName(inc)}
+                        </span>
+                        <span className="text-[8px] font-black text-slate-300 uppercase mt-0.5 flex items-center gap-1.5">
                           <Calendar className="w-3 h-3" />{' '}
                           {new Date(inc.reported_at).toLocaleDateString()}
                         </span>
                       </div>
                     </td>
 
-                    <td className="px-8 py-5 text-center">
-                      <div
-                        className={`inline-flex px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${getStatusStyle(inc.investigation_status)} shadow-sm`}
-                      >
-                        {inc.investigation_status}
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col gap-2">
+                        <div
+                          className={`inline-flex self-start px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${getStatusStyle(inc.investigation_status)} shadow-sm`}
+                        >
+                          {inc.investigation_status}
+                        </div>
+                        {getInvestigationRemarks(inc) && (
+                          <p
+                            className="text-[9px] font-bold text-slate-500 italic max-w-[150px] truncate"
+                            title={getInvestigationRemarks(inc)}
+                          >
+                            "{getInvestigationRemarks(inc)}"
+                          </p>
+                        )}
                       </div>
                     </td>
 
@@ -328,7 +463,10 @@ export const Incidents = () => {
                             <ShieldAlert className="w-4 h-4" />
                           </button>
                         )}
-                        <button className="p-2 bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-600 rounded-lg transition-all border border-slate-100">
+                        <button
+                          onClick={() => setIncidentToView(inc)}
+                          className="p-2 bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-600 rounded-lg transition-all border border-slate-100"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
                         {(isFinanceAdmin || isAdmin) && (
@@ -383,6 +521,12 @@ export const Incidents = () => {
           incident={selectedIncident}
         />
       )}
+
+      <ViewIncidentModal
+        isOpen={!!incidentToView}
+        onClose={() => setIncidentToView(null)}
+        incident={incidentToView}
+      />
     </div>
   );
 };

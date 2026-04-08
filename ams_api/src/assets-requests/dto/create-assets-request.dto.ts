@@ -8,6 +8,8 @@ import {
   IsNumber,
   Min,
   IsOptional,
+  IsBoolean,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -106,7 +108,16 @@ export class CreateAssetRequestDto {
   @Type(() => FinancialsDto)
   financials: FinancialsDto;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => LogisticsDto)
   logistics: LogisticsDto;
+
+  @IsOptional()
+  @IsBoolean()
+  is_shared?: boolean;
+
+  @IsOptional()
+  @IsIn(['PENDING', 'HOD_APPROVED', 'APPROVED', 'REJECTED', 'FULFILLED'])
+  status?: string;
 }

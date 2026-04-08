@@ -64,7 +64,12 @@ export const AdminOverview = () => {
     const missingAssets = assets.filter((a) => a.status === 'MISSING').length;
     const brokenAssets = assets.filter((a) => a.status === 'BROKEN').length;
 
-    const pendingRequests = requests.filter((r) => r.status === 'PENDING');
+    const pendingRequests = requests.filter(
+      (r) =>
+        r.status !== 'PENDING' &&
+        r.status !== 'REJECTED' &&
+        r.status !== 'FULFILLED',
+    );
     const pendingRequestsValue = pendingRequests.reduce(
       (sum, r: AssetRequest) => {
         const val =
@@ -98,6 +103,7 @@ export const AdminOverview = () => {
       totalDepreciation,
       topCategories,
       recentRequests: [...requests]
+        .filter((r) => r.status !== 'PENDING')
         .sort(
           (a, b) =>
             new Date(b.created_at || 0).getTime() -

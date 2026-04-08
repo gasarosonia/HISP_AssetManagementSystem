@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, FormEvent } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Plus,
   ShieldAlert,
+  LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
@@ -42,9 +43,18 @@ interface SearchUser {
   email: string;
 }
 
+interface NavItem {
+  name: string;
+  path?: string;
+  icon: LucideIcon;
+  onClick?: () => void;
+}
+
 export const Layout = () => {
   const { user, logout, isAdmin, isHOD } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
@@ -69,6 +79,49 @@ export const Layout = () => {
     },
     enabled: showResults && searchQuery.length > 1,
   });
+
+  const { data: allIncidents } = useQuery({
+    queryKey: ['asset-incidents', 'badge'],
+    queryFn: async () => {
+      const response = await api.get('/asset-incidents');
+      return response.data;
+    },
+    enabled: isAdmin,
+    refetchInterval: 30000, // Refresh every 30s to keep badge mostly live
+  });
+
+  const pendingIncidentsCount = useMemo(() => {
+    if (!allIncidents) return 0;
+    return allIncidents.filter(
+      (i: { investigation_status: string }) =>
+        i.investigation_status === 'INVESTIGATING',
+    ).length;
+  }, [allIncidents]);
+
+  const { data: hodRequests } = useQuery({
+    queryKey: ['assets-requests', 'badge'],
+    queryFn: async () => {
+      const response = await api.get('/assets-requests');
+      return response.data;
+    },
+    enabled: isHOD || isAdmin, // Enabled for both to handle badges
+    refetchInterval: 30000,
+  });
+
+  const pendingRequestsCount = useMemo(() => {
+    if (!hodRequests) return 0;
+    if (isAdmin) {
+      // Admin only sees formalized requests awaiting final approval
+      return hodRequests.filter(
+        (r: { status: string }) => r.status === 'HOD_APPROVED',
+      ).length;
+    }
+    // HOD sees pending drafts from their department
+    return hodRequests.filter(
+      (r: { department: { id: string }; status: string }) =>
+        r.department?.id === user?.department?.id && r.status === 'PENDING',
+    ).length;
+  }, [hodRequests, user, isAdmin]);
 
   const filteredResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return [];
@@ -155,39 +208,50 @@ export const Layout = () => {
     }
   };
 
-  const navItems = useMemo(() => {
+  const navItems = useMemo((): NavItem[] => {
     if (isAdmin) {
       return [
         { name: 'System Overview', path: '/overview', icon: LayoutDashboard },
         { name: 'Procurement', path: '/requests', icon: ClipboardCheck },
         { name: 'Asset Masterlist', path: '/assets', icon: Laptop },
-        { name: 'Investigations', path: '/incidents', icon: AlertTriangle },
+        { name: 'Incidents', path: '/incidents', icon: AlertTriangle },
         { name: 'Directorate', path: '/directorate', icon: Users },
       ];
     } else {
-      return [
+      const items: NavItem[] = [
         {
           name: isHOD ? 'Department' : 'Asset Manager',
           path: '/overview',
           icon: LayoutDashboard,
         },
         {
-          name: isHOD ? 'Procurement' : 'My Requests',
+          name: isHOD ? 'Asset Requests' : 'My Requests',
           path: '/requests',
           icon: ClipboardCheck,
         },
-        {
+      ];
+
+      if (isHOD) {
+        items.push({
+          name: 'Incidents',
+          path: '/incidents',
+          icon: AlertTriangle,
+        });
+      } else {
+        items.push({
           name: 'Request Asset',
           onClick: () => setIsRequestModalOpen(true),
           icon: Plus,
-        },
-        {
+        });
+        items.push({
           name: 'Report Incident',
           onClick: () => setIsIncidentModalOpen(true),
           icon: ShieldAlert,
-        },
-        { name: 'My Profile', path: '/profile', icon: UserIcon },
-      ];
+        });
+      }
+
+      items.push({ name: 'My Profile', path: '/profile', icon: UserIcon });
+      return items;
     }
   }, [isAdmin, isHOD]);
 
@@ -246,14 +310,32 @@ export const Layout = () => {
                 className={({ isActive }) => commonClasses(isActive)}
               >
                 {({ isActive }) => (
-                  <>
-                    <item.icon
-                      className={`w-4 h-4 transition-transform duration-300 ${
-                        isActive ? 'scale-110' : 'group-hover:scale-110'
-                      }`}
-                    />
-                    <span className="text-xs font-semibold">{item.name}</span>
-                  </>
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2.5">
+                      <item.icon
+                        className={`w-4 h-4 transition-transform duration-300 ${
+                          isActive ? 'scale-110' : 'group-hover:scale-110'
+                        }`}
+                      />
+                      <span className="text-xs font-semibold">{item.name}</span>
+                    </div>
+                    {item.name === 'Incidents' && pendingIncidentsCount > 0 && (
+                      <span
+                        className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white text-red-500' : 'bg-red-500 text-white shadow-sm'}`}
+                      >
+                        {pendingIncidentsCount}
+                      </span>
+                    )}
+                    {(item.name === 'Asset Requests' ||
+                      item.name === 'Procurement') &&
+                      pendingRequestsCount > 0 && (
+                        <span
+                          className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white text-emerald-500' : 'bg-emerald-500 text-white shadow-sm'}`}
+                        >
+                          {pendingRequestsCount}
+                        </span>
+                      )}
+                  </div>
                 )}
               </NavLink>
             );
@@ -285,115 +367,117 @@ export const Layout = () => {
       </aside>
 
       <div className="relative z-10 flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-white/40 backdrop-blur-xl border-b border-white flex items-center justify-between px-6 sticky top-0 z-30">
-          <div className="relative w-full max-w-md group" ref={searchRef}>
-            <form onSubmit={handleSearchSubmit} className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="w-4 h-4 text-orange-400/60 group-focus-within:text-[#ff8000] transition-colors" />
-              </div>
-              <input
-                ref={inputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowResults(true);
-                }}
-                onFocus={() => setShowResults(true)}
-                placeholder="Search by serial number, user, or tag ID..."
-                className="w-full bg-white/60 border border-white rounded-2xl pl-11 pr-12 py-3 text-sm focus:bg-white focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000]/30 outline-none transition-all placeholder:text-slate-400 font-medium shadow-sm"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                {searchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="p-1 hover:bg-slate-100 rounded-full transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5 text-slate-400" />
-                  </button>
-                ) : (
-                  <span className="text-[10px] font-bold text-slate-300 border border-slate-200 rounded px-1.5 py-0.5">
-                    ⌘K
-                  </span>
-                )}
-              </div>
-            </form>
-
-            {showResults && searchQuery.length >= 2 && (
-              <div className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-xl border border-white rounded-3xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
-                <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Quick Results
-                  </span>
-                  {searchQuery.length > 0 && (
-                    <span className="text-[10px] font-bold text-[#ff8000]">
-                      {filteredResults.length} matches
+        {location.pathname === '/overview' && (
+          <header className="h-14 bg-white/40 backdrop-blur-xl border-b border-white flex items-center justify-between px-6 sticky top-0 z-30">
+            <div className="relative w-full max-w-md group" ref={searchRef}>
+              <form onSubmit={handleSearchSubmit} className="relative w-full">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="w-4 h-4 text-orange-400/60 group-focus-within:text-[#ff8000] transition-colors" />
+                </div>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowResults(true);
+                  }}
+                  onFocus={() => setShowResults(true)}
+                  placeholder="Search by serial number, user, or tag ID..."
+                  className="w-full bg-white/60 border border-white rounded-2xl pl-11 pr-12 py-3 text-sm focus:bg-white focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000]/30 outline-none transition-all placeholder:text-slate-400 font-medium shadow-sm"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  {searchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-300 border border-slate-200 rounded px-1.5 py-0.5">
+                      ⌘K
                     </span>
                   )}
                 </div>
+              </form>
 
-                <div className="max-h-[400px] overflow-y-auto py-2">
-                  {filteredResults.length > 0 ? (
-                    filteredResults.map((result) => (
-                      <button
-                        key={`${result.type}-${result.id}`}
-                        onClick={() => {
-                          navigate(result.path);
-                          setShowResults(false);
-                          setSearchQuery('');
-                        }}
-                        className="w-full flex items-center gap-4 px-6 py-4 hover:bg-orange-50/50 transition-all text-left group"
-                      >
-                        <div
-                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${
-                            result.type === 'asset'
-                              ? 'bg-blue-50'
-                              : 'bg-orange-50'
-                          }`}
+              {showResults && searchQuery.length >= 2 && (
+                <div className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-xl border border-white rounded-3xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in duration-200">
+                  <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Quick Results
+                    </span>
+                    {searchQuery.length > 0 && (
+                      <span className="text-[10px] font-bold text-[#ff8000]">
+                        {filteredResults.length} matches
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="max-h-[400px] overflow-y-auto py-2">
+                    {filteredResults.length > 0 ? (
+                      filteredResults.map((result) => (
+                        <button
+                          key={`${result.type}-${result.id}`}
+                          onClick={() => {
+                            navigate(result.path);
+                            setShowResults(false);
+                            setSearchQuery('');
+                          }}
+                          className="w-full flex items-center gap-4 px-6 py-4 hover:bg-orange-50/50 transition-all text-left group"
                         >
-                          {result.type === 'asset' ? (
-                            <Laptop className="w-5 h-5 text-blue-500" />
-                          ) : (
-                            <UserIcon className="w-5 h-5 text-orange-400" />
-                          )}
+                          <div
+                            className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${
+                              result.type === 'asset'
+                                ? 'bg-blue-50'
+                                : 'bg-orange-50'
+                            }`}
+                          >
+                            {result.type === 'asset' ? (
+                              <Laptop className="w-5 h-5 text-blue-500" />
+                            ) : (
+                              <UserIcon className="w-5 h-5 text-orange-400" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-slate-800 truncate">
+                              {result.name}
+                            </p>
+                            <p className="text-[11px] font-medium text-slate-400 truncate">
+                              {result.subtitle}
+                            </p>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-orange-200 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-6 py-12 text-center">
+                        <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                          <History className="w-6 h-6 text-orange-200" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-slate-800 truncate">
-                            {result.name}
-                          </p>
-                          <p className="text-[11px] font-medium text-slate-400 truncate">
-                            {result.subtitle}
-                          </p>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-orange-200 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-6 py-12 text-center">
-                      <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <History className="w-6 h-6 text-orange-200" />
+                        <p className="text-sm font-bold text-slate-500">
+                          No results found for "{searchQuery}"
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-1 font-medium">
+                          Try searching by serial number or name.
+                        </p>
                       </div>
-                      <p className="text-sm font-bold text-slate-500">
-                        No results found for "{searchQuery}"
-                      </p>
-                      <p className="text-[11px] text-slate-400 mt-1 font-medium">
-                        Try searching by serial number or name.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
 
-                <button
-                  onClick={handleSearchSubmit}
-                  className="w-full py-4 px-6 bg-[#ff8000] text-white text-xs font-black uppercase tracking-widest hover:bg-[#e49f37] transition-colors flex items-center justify-center gap-2"
-                >
-                  View All Search Results <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
+                  <button
+                    onClick={handleSearchSubmit}
+                    className="w-full py-4 px-6 bg-[#ff8000] text-white text-xs font-black uppercase tracking-widest hover:bg-[#e49f37] transition-colors flex items-center justify-center gap-2"
+                  >
+                    View All Search Results <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </header>
+        )}
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-5 lg:p-6">
           <Outlet

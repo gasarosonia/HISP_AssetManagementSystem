@@ -79,14 +79,26 @@ export class AssetsService {
 
   async findAll(): Promise<Asset[]> {
     return await this.assetRepo.find({
-      relations: ['category', 'department', 'assigned_to'],
+      relations: [
+        'category',
+        'department',
+        'assigned_to',
+        'assignment_history',
+        'assignment_history.user',
+      ],
     });
   }
 
   async findOne(id: string): Promise<Asset> {
     const asset = await this.assetRepo.findOne({
       where: { id },
-      relations: ['category', 'department', 'assigned_to'],
+      relations: [
+        'category',
+        'department',
+        'assigned_to',
+        'assignment_history',
+        'assignment_history.user',
+      ],
     });
 
     if (!asset) throw new NotFoundException(`Asset with ID ${id} not found`);
@@ -208,7 +220,7 @@ export class AssetsService {
     try {
       const asset = await queryRunner.manager.findOne(Asset, {
         where: { id },
-        relations: ['assignment_history'],
+        relations: ['assignment_history', 'assigned_to', 'department'],
       });
 
       if (!asset) throw new NotFoundException(`Asset with ID ${id} not found`);
@@ -228,7 +240,7 @@ export class AssetsService {
       asset.disposal_date = new Date(disposeAssetDto.disposal_date);
       asset.disposal_value = disposeAssetDto.disposal_value;
       asset.disposal_reason = disposeAssetDto.disposal_reason;
-      asset.assigned_to = null;
+      // Preserve assigned_to for auditing purposes
       const savedAsset = await queryRunner.manager.save(asset);
 
       await queryRunner.commitTransaction();

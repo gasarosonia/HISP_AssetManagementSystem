@@ -8,6 +8,7 @@ import {
   AlertCircle,
   MessageSquare,
   Info,
+  ExternalLink,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { AssetIncident } from '../types/assets';
@@ -130,24 +131,53 @@ export const ResolveIncidentModal = ({
                 </div>
               )}
 
-              <div className="flex items-center gap-4 p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
-                    Type
-                  </p>
-                  <p className="text-[10px] font-black text-slate-700 truncate">
-                    {incident.incident_type}
-                  </p>
+              <div className="flex flex-col gap-3 p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
+                      Type
+                    </p>
+                    <p className="text-[10px] font-black text-slate-700 truncate">
+                      {incident.incident_type}
+                    </p>
+                  </div>
+                  <div className="w-px h-6 bg-slate-200" />
+                  <div className="flex-[2] min-w-0">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
+                      Reporter & Directorate
+                    </p>
+                    <p className="text-[10px] font-black text-slate-700 truncate flex items-center gap-1.5">
+                      {incident.reported_by?.full_name}
+                      <span className="text-[8px] text-[#ff8000] uppercase tracking-wider bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
+                        {incident.reported_by?.department?.name || 'Unknown'}
+                      </span>
+                    </p>
+                  </div>
                 </div>
-                <div className="w-px h-6 bg-slate-200" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
-                    Reporter
-                  </p>
-                  <p className="text-[10px] font-black text-slate-700 truncate">
-                    {incident.reported_by?.full_name}
-                  </p>
-                </div>
+
+                {incident.explanation && (
+                  <div className="pt-3 border-t border-slate-200/60">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                      Explanation
+                    </p>
+                    <p className="text-xs font-medium text-slate-600 bg-white/60 p-2.5 rounded-lg border border-slate-200/50 leading-relaxed italic">
+                      "{incident.explanation}"
+                    </p>
+                  </div>
+                )}
+
+                {incident.evidence_url && (
+                  <div className="pt-1">
+                    <a
+                      href={incident.evidence_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" /> View Photo Evidence
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

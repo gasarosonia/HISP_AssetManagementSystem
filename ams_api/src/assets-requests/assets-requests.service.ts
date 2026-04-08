@@ -26,9 +26,10 @@ export class AssetRequestsService {
       items: dto.items,
       financials: dto.financials,
       logistics: dto.logistics,
+      is_shared: dto.is_shared || false,
       department: { id: dto.department_id } as unknown as Department,
       requested_by: { id: userId } as unknown as User,
-      status: 'PENDING',
+      status: dto.status || 'PENDING',
     });
 
     return await this.requestRepo.save(request);
@@ -57,7 +58,22 @@ export class AssetRequestsService {
   async update(id: string, dto: UpdateAssetRequestDto): Promise<AssetRequest> {
     const request = await this.findOne(id);
 
+    if (dto.title) request.title = dto.title;
+    if (dto.description) request.description = dto.description;
+    if (dto.urgency) request.urgency = dto.urgency;
     if (dto.status) request.status = dto.status;
+    if (dto.is_shared !== undefined) request.is_shared = dto.is_shared;
+
+    if (dto.items) request.items = dto.items;
+    if (dto.financials) request.financials = dto.financials;
+    if (dto.logistics) request.logistics = dto.logistics;
+
+    if (dto.requested_by_id) {
+      request.requested_by = { id: dto.requested_by_id } as unknown as User;
+    }
+    if (dto.department_id) {
+      request.department = { id: dto.department_id } as unknown as Department;
+    }
 
     if (dto.ceo_remarks) request.ceo_remarks = dto.ceo_remarks;
     if (dto.verified_by_finance_id) {

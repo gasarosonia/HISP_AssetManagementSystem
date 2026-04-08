@@ -65,7 +65,9 @@ export class Asset {
   @JoinColumn({ name: 'category_id' })
   category: Category;
 
-  @ManyToOne(() => Department, (department) => department.assets)
+  @ManyToOne(() => Department, (department) => department.assets, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'department_id' })
   department: Department;
 

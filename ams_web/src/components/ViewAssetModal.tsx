@@ -142,7 +142,9 @@ export const ViewAssetModal = ({
                 <Building2 className="w-4 h-4 text-slate-400 mt-0.5" />
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Directorate
+                    {asset.status === 'DISPOSED'
+                      ? 'Last Directorate'
+                      : 'Directorate'}
                   </p>
                   <p className="text-sm font-bold text-slate-700">
                     {asset.department?.name || 'Unassigned'}
@@ -153,10 +155,20 @@ export const ViewAssetModal = ({
                 <User className="w-4 h-4 text-slate-400 mt-0.5" />
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Assigned To
+                    {asset.status === 'DISPOSED'
+                      ? 'Previously Assigned To'
+                      : 'Assigned To'}
                   </p>
                   <p className="text-sm font-bold text-slate-700">
-                    {asset.assigned_to?.full_name || 'Unassigned'}
+                    {asset.assigned_to?.full_name ||
+                      (asset.assignment_history &&
+                      asset.assignment_history.length > 0
+                        ? [...asset.assignment_history].sort(
+                            (a, b) =>
+                              new Date(b.assigned_at).getTime() -
+                              new Date(a.assigned_at).getTime(),
+                          )[0].user?.full_name
+                        : 'Unassigned')}
                   </p>
                 </div>
               </div>

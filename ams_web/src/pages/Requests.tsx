@@ -16,6 +16,7 @@ import {
   X,
   Settings2,
   Activity,
+  Download,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
@@ -34,6 +35,11 @@ export const Requests = () => {
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [requestMode, setRequestMode] = useState<
+    'SHARED' | 'INDIVIDUAL' | undefined
+  >(undefined);
+  const [requestToFormalize, setRequestToFormalize] =
+    useState<AssetRequest | null>(null);
   const [isFormalizeModalOpen, setIsFormalizeModalOpen] = useState(false);
   const [requestToView, setRequestToView] = useState<AssetRequest | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<AssetRequest | null>(
@@ -65,6 +71,9 @@ export const Requests = () => {
       filtered = filtered.filter(
         (r) => r.department?.id === currentUser?.department?.id,
       );
+    } else if (isAdmin) {
+      // Admin should NOT see PENDING requests until they are HOD_APPROVED (Formalized)
+      filtered = filtered.filter((r) => r.status !== 'PENDING');
     }
 
     if (filterStatus !== 'ALL') {
@@ -86,7 +95,15 @@ export const Requests = () => {
         new Date(b.created_at || 0).getTime() -
         new Date(a.created_at || 0).getTime(),
     );
-  }, [requests, filterStatus, searchQuery, currentUser, isHOD, isStaff]);
+  }, [
+    requests,
+    filterStatus,
+    searchQuery,
+    currentUser,
+    isHOD,
+    isStaff,
+    isAdmin,
+  ]);
 
   const pendingCount =
     requests?.filter((r) => r.status === 'PENDING').length || 0;
@@ -135,8 +152,62 @@ export const Requests = () => {
   };
 
   const handleFormalize = (req: AssetRequest) => {
-    setSelectedRequest(req);
-    setIsFormalizeModalOpen(true);
+    setRequestToFormalize(req);
+    setRequestMode('INDIVIDUAL');
+    setIsCreateModalOpen(true);
+  };
+
+  const handleExportLogs = () => {
+    if (!filteredRequests.length) return;
+
+    const headers = [
+      'Request Title',
+      'Requested By',
+      'Directorate',
+      'Total Est. Cost (RWF)',
+      'Urgency',
+      'Status',
+      'Date Requested',
+    ];
+
+    const escapeCSV = (val: string | number | undefined) => {
+      if (val === null || val === undefined) return '""';
+      return `"${String(val).replace(/"/g, '""')}"`;
+    };
+
+    const rows = filteredRequests.map((req) => {
+      const cost =
+        req.financials?.grand_total ??
+        (req.quantity || 0) * (req.estimated_unit_cost || 0);
+      return [
+        escapeCSV(req.title),
+        escapeCSV(req.requested_by?.full_name),
+        escapeCSV(req.department?.name),
+        escapeCSV(cost),
+        escapeCSV(req.urgency),
+        escapeCSV(req.status),
+        escapeCSV(
+          req.created_at ? new Date(req.created_at).toLocaleDateString() : '',
+        ),
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.join(',')),
+    ].join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `procurement_requests_${dateStr}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -159,15 +230,50 @@ export const Requests = () => {
                 : 'Track the status of your requested equipment.'}
           </p>
         </div>
-        <button
-          onClick={() =>
-            isStaff && !isHOD ? openRequest() : setIsCreateModalOpen(true)
-          }
-          className="bg-[#ff8000] hover:bg-[#e49f37] text-white px-4 py-2 text-sm rounded-xl font-bold shadow-md transform active:scale-95 transition-all flex items-center gap-2 group"
-        >
-          <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />{' '}
-          New Request
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button
+            onClick={handleExportLogs}
+            disabled={!filteredRequests.length}
+            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 text-sm rounded-xl font-bold shadow-sm transform active:scale-95 transition-all flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
+          >
+            <Download className="w-4 h-4 text-slate-400 group-hover:text-amber-500 transition-colors" />{' '}
+            Request log
+          </button>
+
+          {isHOD ? (
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => {
+                  setRequestMode('INDIVIDUAL');
+                  setIsCreateModalOpen(true);
+                }}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 text-sm rounded-xl font-bold shadow-md transform active:scale-95 transition-all flex items-center gap-2 group justify-center flex-1 sm:flex-none"
+              >
+                <UserIcon className="w-4 h-4" /> Request Individual Asset
+              </button>
+              <button
+                onClick={() => {
+                  setRequestMode('SHARED');
+                  setIsCreateModalOpen(true);
+                }}
+                className="bg-[#ff8000] hover:bg-[#e49f37] text-white px-4 py-2 text-sm rounded-xl font-bold shadow-md transform active:scale-95 transition-all flex items-center gap-2 group justify-center flex-1 sm:flex-none"
+              >
+                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />{' '}
+                Request Shared Asset
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() =>
+                isStaff && !isHOD ? openRequest() : setIsCreateModalOpen(true)
+              }
+              className="bg-[#ff8000] hover:bg-[#e49f37] text-white px-4 py-2 text-sm rounded-xl font-bold shadow-md transform active:scale-95 transition-all flex items-center gap-2 group w-full sm:w-auto justify-center"
+            >
+              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />{' '}
+              New Request
+            </button>
+          )}
+        </div>
       </div>
 
       <div
@@ -452,7 +558,13 @@ export const Requests = () => {
       </div>
       <CreateRequestModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setRequestMode(undefined);
+          setRequestToFormalize(null);
+        }}
+        requestMode={requestMode}
+        baseRequest={requestToFormalize}
       />
       <ViewRequestModal
         isOpen={!!requestToView}

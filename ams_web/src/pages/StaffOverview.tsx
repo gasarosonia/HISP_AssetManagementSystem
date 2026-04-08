@@ -10,10 +10,13 @@ import {
   Box,
   Calendar,
   Check,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
-import { Asset } from '../types/assets';
+import { Asset, AssetIncident } from '../types/assets';
 
 export const StaffOverview = ({
   onOpenRequest,
@@ -32,6 +35,14 @@ export const StaffOverview = ({
     },
   });
 
+  const { data: incidents } = useQuery<AssetIncident[]>({
+    queryKey: ['my-incidents'],
+    queryFn: async () => {
+      const response = await api.get('/asset-incidents');
+      return response.data;
+    },
+  });
+
   const stats = useMemo(() => {
     if (!assets) return null;
 
@@ -42,8 +53,23 @@ export const StaffOverview = ({
     return {
       userAssets,
       userAssetsCount: userAssets.length,
+      recentOutcomes: incidents
+        ? incidents
+            .filter(
+              (i) =>
+                i.reported_by?.id === currentUser?.id &&
+                (i.investigation_status === 'ACCEPTED' ||
+                  i.investigation_status === 'DENIED'),
+            )
+            .sort(
+              (a, b) =>
+                new Date(b.reported_at).getTime() -
+                new Date(a.reported_at).getTime(),
+            )
+            .slice(0, 3)
+        : [],
     };
-  }, [assets, currentUser]);
+  }, [assets, incidents, currentUser]);
 
   const getAssetIcon = (name: string) => {
     const n = name.toLowerCase();
@@ -82,6 +108,100 @@ export const StaffOverview = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Main Content: Assets */}
         <div className="lg:col-span-8 space-y-6">
+          {stats.recentOutcomes.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2.5 mb-4">
+                <AlertCircle className="w-4 h-4 text-slate-400" />
+                Recent Incident Outcomes
+              </h3>
+              <div className="space-y-3">
+                {stats.recentOutcomes.map((incident) => (
+                  <div
+                    key={incident.id}
+                    className={`p-4 rounded-2xl border ${
+                      incident.investigation_status === 'ACCEPTED'
+                        ? 'bg-emerald-50/50 border-emerald-100'
+                        : 'bg-red-50/50 border-red-100'
+                    }`}
+                  >
+                    <div className="flex gap-4">
+                      <div className="shrink-0 mt-1">
+                        {incident.investigation_status === 'ACCEPTED' ? (
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                            <XCircle className="w-4 h-4 text-red-600" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <h4
+                            className={`text-sm font-black ${
+                              incident.investigation_status === 'ACCEPTED'
+                                ? 'text-emerald-900'
+                                : 'text-red-900'
+                            }`}
+                          >
+                            Case{' '}
+                            {incident.investigation_status === 'ACCEPTED'
+                              ? 'Accepted'
+                              : 'Denied'}
+                            : {incident.asset?.name}
+                          </h4>
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                            {new Date(
+                              incident.reported_at,
+                            ).toLocaleDateString()}
+                          </span>
+                        </div>
+
+                        {incident.investigation_status === 'ACCEPTED' ? (
+                          <p className="text-xs font-medium text-emerald-700/80 mb-2">
+                            Your explanation was understood. A new Asset Request
+                            has been automatically submitted for a replacement{' '}
+                            {incident.asset?.name}.
+                          </p>
+                        ) : (
+                          <>
+                            <p className="text-xs font-medium text-red-700/80 mb-2">
+                              Your reasoning was denied. You are required to pay
+                              the following penalty based on the asset's
+                              depreciated value.
+                            </p>
+                            <div className="bg-white/60 rounded-xl p-3 border border-red-100 mb-2">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-red-400 mb-1">
+                                Penalty Amount
+                              </p>
+                              <div className="text-sm font-black text-red-600">
+                                {Number(
+                                  incident.penalty_amount || 0,
+                                ).toLocaleString()}{' '}
+                                RWF
+                              </div>
+                            </div>
+                            {incident.investigation_remarks && (
+                              <div className="bg-white/60 rounded-xl p-3 border border-red-100">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-red-400 mb-1">
+                                  Investigation Remarks
+                                </p>
+                                <p className="text-xs font-medium text-red-800/80 italic">
+                                  "{incident.investigation_remarks}"
+                                </p>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between px-2">
             <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2.5">
               <div className="w-1 h-6 bg-blue-500 rounded-full" /> Assets
@@ -96,8 +216,20 @@ export const StaffOverview = ({
                 className="p-5 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-lg hover:shadow-slate-100 transition-all group relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-3">
-                  <div className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[8px] font-black uppercase tracking-widest border border-emerald-100">
-                    Functional
+                  <div
+                    className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${
+                      asset.status === 'BROKEN'
+                        ? 'bg-amber-50 text-amber-600 border-amber-100'
+                        : asset.status === 'MISSING'
+                          ? 'bg-red-50 text-red-600 border-red-100'
+                          : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                    }`}
+                  >
+                    {asset.status === 'BROKEN'
+                      ? 'Broken'
+                      : asset.status === 'MISSING'
+                        ? 'Missing'
+                        : 'Functional'}
                   </div>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors border border-slate-50 shadow-inner">

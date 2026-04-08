@@ -215,9 +215,16 @@ export const CreateAssetModal = ({
                 </label>
                 <select
                   value={formData.status}
-                  onChange={(e) =>
-                    setFormData({ ...formData, status: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const newStatus = e.target.value;
+                    setFormData({
+                      ...formData,
+                      status: newStatus,
+                      ...(newStatus === 'IN_STOCK'
+                        ? { department_id: '', assigned_to_user_id: '' }
+                        : {}),
+                    });
+                  }}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#ff8000]/20 focus:border-[#ff8000] transition-all text-sm font-medium appearance-none"
                 >
                   <option value="IN_STOCK">In Stock (Available)</option>
@@ -284,7 +291,8 @@ export const CreateAssetModal = ({
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <select
-                    required
+                    required={formData.status !== 'IN_STOCK'}
+                    disabled={formData.status === 'IN_STOCK'}
                     value={formData.department_id}
                     onChange={(e) =>
                       setFormData({
@@ -299,8 +307,10 @@ export const CreateAssetModal = ({
                     }
                     className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#ff8000]/20 focus:border-[#ff8000] transition-all text-sm font-medium appearance-none"
                   >
-                    <option value="" disabled>
-                      Select Directorate...
+                    <option value="" disabled={formData.status !== 'IN_STOCK'}>
+                      {formData.status === 'IN_STOCK'
+                        ? 'Stored in General Inventory'
+                        : 'Select Directorate...'}
                     </option>
                     {departments?.map((d: { id: string; name: string }) => (
                       <option key={d.id} value={d.id}>
@@ -326,8 +336,12 @@ export const CreateAssetModal = ({
                         status: e.target.value ? 'ASSIGNED' : 'IN_STOCK',
                       });
                     }}
-                    disabled={!formData.department_id || loadingUsers}
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#ff8000]/20 focus:border-[#ff8000] transition-all text-sm font-medium appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={
+                      !formData.department_id ||
+                      loadingUsers ||
+                      formData.status === 'IN_STOCK'
+                    }
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#ff8000]/20 focus:border-[#ff8000] transition-all text-sm font-medium appearance-none disabled:opacity-40 disabled:bg-slate-100 disabled:cursor-not-allowed"
                   >
                     <option value="">
                       {!formData.department_id

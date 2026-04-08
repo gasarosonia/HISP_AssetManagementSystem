@@ -7,6 +7,8 @@ import { Assets } from './pages/Assets';
 import { Requests } from './pages/Requests';
 import { Incidents } from './pages/Incidents';
 import { Directorate } from './pages/Directorate';
+import { DisposalTrail } from './pages/DisposalTrail';
+import { Penalties } from './pages/Penalties';
 
 import { Profile } from './pages/Profile';
 import { Overview } from './pages/Overview';
@@ -25,7 +27,9 @@ function App() {
             <Route path="/assets" element={<Assets />} />
             <Route path="/incidents" element={<Incidents />} />
             <Route path="/directorate" element={<Directorate />} />
+            <Route path="/disposal-trail" element={<DisposalTrail />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/penalties" element={<Penalties />} />
           </Route>
         </Route>
       </Routes>
