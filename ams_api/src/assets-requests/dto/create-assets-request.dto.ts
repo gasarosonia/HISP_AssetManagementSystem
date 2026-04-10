@@ -10,6 +10,7 @@ import {
   IsOptional,
   IsBoolean,
   IsIn,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -118,6 +119,19 @@ export class CreateAssetRequestDto {
   is_shared?: boolean;
 
   @IsOptional()
-  @IsIn(['PENDING', 'HOD_APPROVED', 'APPROVED', 'REJECTED', 'FULFILLED'])
+  @IsIn([
+    'PENDING',
+    'HOD_APPROVED',
+    'APPROVED',
+    'CEO_REVIEW',
+    'CEO_APPROVED',
+    'ORDERED',
+    'REJECTED',
+    'FULFILLED',
+  ])
   status?: string;
+
+  @IsOptional()
+  @IsObject()
+  purchase_order?: Record<string, any>;
 }

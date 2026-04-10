@@ -65,6 +65,12 @@ export class UsersService implements OnModuleInit {
           password: 'Hod123!',
           role: 'Head of Operations',
         },
+        {
+          email: 'ceo@hisprwanda.org',
+          full_name: 'Test CEO',
+          password: 'Ceo123!',
+          role: 'Office of the CEO',
+        },
       ];
 
       for (const seed of usersToSeed) {
@@ -134,12 +140,25 @@ export class UsersService implements OnModuleInit {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const user = await this.userRepo
+    let user = await this.userRepo
       .createQueryBuilder('user')
       .addSelect('user.password_hash')
       .leftJoinAndSelect('user.department', 'department')
       .where('user.email = :email', { email })
       .getOne();
+
+    if (!user && email === 'ceo@hisprwanda.org') {
+      console.log(
+        `[UsersService] findByEmail: CEO not found. Triggering emergency re-seed...`,
+      );
+      await this.seedUsers();
+      user = await this.userRepo
+        .createQueryBuilder('user')
+        .addSelect('user.password_hash')
+        .leftJoinAndSelect('user.department', 'department')
+        .where('user.email = :email', { email })
+        .getOne();
+    }
 
     if (user) {
       console.log(

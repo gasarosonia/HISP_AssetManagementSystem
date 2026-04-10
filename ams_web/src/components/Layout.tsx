@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, FormEvent } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
@@ -21,6 +21,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import { SimpleRequestModal } from './SimpleRequestModal';
 import { ReportAssetIncidentModal } from './ReportAssetIncidentModal';
+import { NotificationBell } from './NotificationBell';
 
 interface SearchResult {
   id: string;
@@ -51,9 +52,8 @@ interface NavItem {
 }
 
 export const Layout = () => {
-  const { user, logout, isAdmin, isHOD } = useAuth();
+  const { user, logout, isAdmin, isHOD, isCEO } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -86,7 +86,7 @@ export const Layout = () => {
       const response = await api.get('/asset-incidents');
       return response.data;
     },
-    enabled: isAdmin,
+    enabled: isAdmin || isCEO,
     refetchInterval: 30000,
   });
 
@@ -104,7 +104,7 @@ export const Layout = () => {
       const response = await api.get('/assets-requests');
       return response.data;
     },
-    enabled: isHOD || isAdmin,
+    enabled: isHOD || isAdmin || isCEO,
     refetchInterval: 30000,
   });
 
@@ -115,11 +115,16 @@ export const Layout = () => {
         (r: { status: string }) => r.status === 'HOD_APPROVED',
       ).length;
     }
+    if (isCEO) {
+      return hodRequests.filter(
+        (r: { status: string }) => r.status === 'CEO_REVIEW',
+      ).length;
+    }
     return hodRequests.filter(
       (r: { department: { id: string }; status: string }) =>
         r.department?.id === user?.department?.id && r.status === 'PENDING',
     ).length;
-  }, [hodRequests, user, isAdmin]);
+  }, [hodRequests, user, isAdmin, isCEO]);
 
   const filteredResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return [];
@@ -207,14 +212,27 @@ export const Layout = () => {
   };
 
   const navItems = useMemo((): NavItem[] => {
-    if (isAdmin) {
-      return [
+    if (isAdmin || isCEO) {
+      const baseItems = [
         { name: 'System Overview', path: '/overview', icon: LayoutDashboard },
         { name: 'Procurement', path: '/requests', icon: ClipboardCheck },
         { name: 'Asset Masterlist', path: '/assets', icon: Laptop },
-        { name: 'Incident Reports', path: '/incidents', icon: AlertTriangle },
-        { name: 'Directorate', path: '/directorate', icon: Users },
       ];
+
+      if (isAdmin) {
+        baseItems.push({
+          name: 'Incident Reports',
+          path: '/incidents',
+          icon: AlertTriangle,
+        });
+        baseItems.push({
+          name: 'Directorate',
+          path: '/directorate',
+          icon: Users,
+        });
+      }
+
+      return baseItems;
     } else {
       const items: NavItem[] = [
         {
@@ -251,7 +269,7 @@ export const Layout = () => {
       items.push({ name: 'My Profile', path: '/profile', icon: UserIcon });
       return items;
     }
-  }, [isAdmin, isHOD]);
+  }, [isAdmin, isHOD, isCEO]);
 
   return (
     <div className="relative flex h-screen bg-[#f8fafc] overflow-hidden font-sans text-slate-900">
@@ -366,117 +384,119 @@ export const Layout = () => {
       </aside>
 
       <div className="relative z-10 flex-1 flex flex-col min-w-0">
-        {location.pathname === '/overview' && (
-          <header className="h-14 bg-white/40 backdrop-blur-xl border-b border-white flex items-center justify-between px-6 sticky top-0 z-30">
-            <div className="relative w-full max-w-md group" ref={searchRef}>
-              <form onSubmit={handleSearchSubmit} className="relative w-full">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Search className="w-4 h-4 text-orange-400/60 group-focus-within:text-[#ff8000] transition-colors" />
-                </div>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setShowResults(true);
-                  }}
-                  onFocus={() => setShowResults(true)}
-                  placeholder="Search by serial number, user, or tag ID..."
-                  className="w-full bg-white/60 border border-white rounded-2xl pl-11 pr-12 py-3 text-sm focus:bg-white focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000]/30 outline-none transition-all placeholder:text-slate-400 font-medium shadow-sm"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  {searchQuery ? (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      className="p-1 hover:bg-slate-100 rounded-full transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5 text-slate-400" />
-                    </button>
-                  ) : (
-                    <span className="text-[10px] font-bold text-slate-300 border border-slate-200 rounded px-1.5 py-0.5">
-                      ⌘K
+        <header className="h-14 bg-white/40 backdrop-blur-xl border-b border-white flex items-center justify-between px-6 sticky top-0 z-30">
+          <div className="relative w-full max-w-md group" ref={searchRef}>
+            <form onSubmit={handleSearchSubmit} className="relative w-full">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="w-4 h-4 text-orange-400/60 group-focus-within:text-[#ff8000] transition-colors" />
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowResults(true);
+                }}
+                onFocus={() => setShowResults(true)}
+                placeholder="Search by serial number, user, or tag ID..."
+                className="w-full bg-white/60 border border-white rounded-2xl pl-11 pr-12 py-3 text-sm focus:bg-white focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000]/30 outline-none transition-all placeholder:text-slate-400 font-medium shadow-sm"
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+                ) : (
+                  <span className="text-[10px] font-bold text-slate-300 border border-slate-200 rounded px-1.5 py-0.5">
+                    ⌘K
+                  </span>
+                )}
+              </div>
+            </form>
+
+            {showResults && searchQuery.length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-xl border border-white rounded-3xl shadow-2xl overflow-hidden z-50">
+                <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Quick Results
+                  </span>
+                  {searchQuery.length > 0 && (
+                    <span className="text-[10px] font-bold text-[#ff8000]">
+                      {filteredResults.length} matches
                     </span>
                   )}
                 </div>
-              </form>
 
-              {showResults && searchQuery.length >= 2 && (
-                <div className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-xl border border-white rounded-3xl shadow-2xl overflow-hidden z-50">
-                  <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Quick Results
-                    </span>
-                    {searchQuery.length > 0 && (
-                      <span className="text-[10px] font-bold text-[#ff8000]">
-                        {filteredResults.length} matches
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="max-h-[400px] overflow-y-auto py-2">
-                    {filteredResults.length > 0 ? (
-                      filteredResults.map((result) => (
-                        <button
-                          key={`${result.type}-${result.id}`}
-                          onClick={() => {
-                            navigate(result.path);
-                            setShowResults(false);
-                            setSearchQuery('');
-                          }}
-                          className="w-full flex items-center gap-4 px-6 py-4 hover:bg-orange-50/50 transition-all text-left group"
+                <div className="max-h-[400px] overflow-y-auto py-2">
+                  {filteredResults.length > 0 ? (
+                    filteredResults.map((result) => (
+                      <button
+                        key={`${result.type}-${result.id}`}
+                        onClick={() => {
+                          navigate(result.path);
+                          setShowResults(false);
+                          setSearchQuery('');
+                        }}
+                        className="w-full flex items-center gap-4 px-6 py-4 hover:bg-orange-50/50 transition-all text-left group"
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${
+                            result.type === 'asset'
+                              ? 'bg-blue-50'
+                              : 'bg-orange-50'
+                          }`}
                         >
-                          <div
-                            className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-inner ${
-                              result.type === 'asset'
-                                ? 'bg-blue-50'
-                                : 'bg-orange-50'
-                            }`}
-                          >
-                            {result.type === 'asset' ? (
-                              <Laptop className="w-5 h-5 text-blue-500" />
-                            ) : (
-                              <UserIcon className="w-5 h-5 text-orange-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-slate-800 truncate">
-                              {result.name}
-                            </p>
-                            <p className="text-[11px] font-medium text-slate-400 truncate">
-                              {result.subtitle}
-                            </p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-orange-200 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-6 py-12 text-center">
-                        <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                          <History className="w-6 h-6 text-orange-200" />
+                          {result.type === 'asset' ? (
+                            <Laptop className="w-5 h-5 text-blue-500" />
+                          ) : (
+                            <UserIcon className="w-5 h-5 text-orange-400" />
+                          )}
                         </div>
-                        <p className="text-sm font-bold text-slate-500">
-                          No results found for "{searchQuery}"
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-1 font-medium">
-                          Try searching by serial number or name.
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-slate-800 truncate">
+                            {result.name}
+                          </p>
+                          <p className="text-[11px] font-medium text-slate-400 truncate">
+                            {result.subtitle}
+                          </p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-orange-200 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-6 py-12 text-center">
+                      <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <History className="w-6 h-6 text-orange-200" />
                       </div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={handleSearchSubmit}
-                    className="w-full py-4 px-6 bg-[#ff8000] text-white text-xs font-black uppercase tracking-widest hover:bg-[#e49f37] transition-colors flex items-center justify-center gap-2"
-                  >
-                    View All Search Results <ArrowRight className="w-4 h-4" />
-                  </button>
+                      <p className="text-sm font-bold text-slate-500">
+                        No results found for "{searchQuery}"
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-1 font-medium">
+                        Try searching by serial number or name.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </header>
-        )}
+
+                <button
+                  onClick={handleSearchSubmit}
+                  className="w-full py-4 px-6 bg-[#ff8000] text-white text-xs font-black uppercase tracking-widest hover:bg-[#e49f37] transition-colors flex items-center justify-center gap-2"
+                >
+                  View All Search Results <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+          </div>
+        </header>
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-5 lg:p-6">
           <Outlet

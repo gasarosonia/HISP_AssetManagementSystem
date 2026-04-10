@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
+import { CEODecisionModal } from './CEODecisionModal';
 
 import { AssetRequest } from '../types/assets';
 
@@ -33,9 +34,13 @@ export const ViewRequestModal = ({
   onClose,
   request,
 }: ViewRequestModalProps) => {
-  const { user: currentUser, isAdmin, isHOD } = useAuth();
+  const { user: currentUser, isAdmin, isHOD, isCEO } = useAuth();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [decisionType, setDecisionType] = useState<'APPROVE' | 'REJECT'>(
+    'APPROVE',
+  );
 
   const mutation = useMutation({
     mutationFn: async ({
@@ -70,9 +75,13 @@ export const ViewRequestModal = ({
       case 'HOD_APPROVED':
         return 'bg-indigo-100 text-indigo-700 border-indigo-200';
       case 'APPROVED':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'FULFILLED':
+        return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'CEO_REVIEW':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'CEO_APPROVED':
         return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'FULFILLED':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'REJECTED':
         return 'bg-red-100 text-red-700 border-red-200';
       default:
@@ -87,6 +96,10 @@ export const ViewRequestModal = ({
       case 'HOD_APPROVED':
         return <Activity className="w-3.5 h-3.5" />;
       case 'APPROVED':
+        return <ShieldCheck className="w-3.5 h-3.5" />;
+      case 'CEO_REVIEW':
+        return <Activity className="w-3.5 h-3.5" />;
+      case 'CEO_APPROVED':
         return <ShieldCheck className="w-3.5 h-3.5" />;
       case 'FULFILLED':
         return <CheckCircle2 className="w-3.5 h-3.5" />;
@@ -123,23 +136,48 @@ export const ViewRequestModal = ({
       status:
         request.status === 'PENDING'
           ? 'current'
-          : ['HOD_APPROVED', 'APPROVED', 'FULFILLED'].includes(request.status)
+          : [
+                'HOD_APPROVED',
+                'APPROVED',
+                'CEO_REVIEW',
+                'CEO_APPROVED',
+                'FULFILLED',
+                'REJECTED',
+              ].includes(request.status)
             ? 'completed'
             : 'pending',
     },
     {
-      label: 'Central Approval',
+      label: 'Admin Verify',
       status:
         request.status === 'HOD_APPROVED'
           ? 'current'
-          : ['APPROVED', 'FULFILLED'].includes(request.status)
+          : [
+                'APPROVED',
+                'CEO_REVIEW',
+                'CEO_APPROVED',
+                'FULFILLED',
+                'REJECTED',
+              ].includes(request.status)
             ? 'completed'
+            : 'pending',
+    },
+    {
+      label: 'CEO Approval',
+      status: ['APPROVED', 'CEO_REVIEW'].includes(request.status)
+        ? request.status === 'CEO_REVIEW'
+          ? 'current'
+          : 'current'
+        : ['CEO_APPROVED', 'FULFILLED'].includes(request.status)
+          ? 'completed'
+          : request.status === 'REJECTED'
+            ? 'rejected'
             : 'pending',
     },
     {
       label: 'Deployment',
       status:
-        request.status === 'APPROVED'
+        request.status === 'CEO_APPROVED'
           ? 'current'
           : request.status === 'FULFILLED'
             ? 'completed'
@@ -362,6 +400,18 @@ export const ViewRequestModal = ({
             </div>
           </div>
 
+          {request.ceo_remarks && (
+            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
+              <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" /> Executive Decision
+                Remarks
+              </h3>
+              <p className="text-sm font-bold text-indigo-900 leading-relaxed italic">
+                "{request.ceo_remarks}"
+              </p>
+            </div>
+          )}
+
           <hr className="border-slate-100" />
 
           <div>
@@ -451,39 +501,57 @@ export const ViewRequestModal = ({
               Close
             </button>
 
-            {request.status === 'HOD_APPROVED' &&
-              (currentUser?.role === 'Admin and Finance Director' ||
-                currentUser?.role === 'Finance Officer') && (
-                <>
-                  <button
-                    onClick={() => mutation.mutate({ status: 'REJECTED' })}
-                    disabled={mutation.isPending}
-                    className="px-6 py-2.5 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 font-bold rounded-xl flex items-center gap-2 transition-all"
-                  >
-                    {mutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ThumbsDown className="w-4 h-4" />
-                    )}
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => mutation.mutate({ status: 'APPROVED' })}
-                    disabled={mutation.isPending}
-                    className="px-6 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-100 transform active:scale-95 transition-all"
-                  >
-                    {mutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ThumbsUp className="w-4 h-4" />
-                    )}
-                    Final Approval
-                  </button>
-                </>
-              )}
+            {isCEO && request.status === 'CEO_REVIEW' && (
+              <>
+                <button
+                  onClick={() => {
+                    setDecisionType('REJECT');
+                    setIsDecisionModalOpen(true);
+                  }}
+                  disabled={mutation.isPending}
+                  className="px-6 py-2.5 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 font-bold rounded-xl flex items-center gap-2 transition-all"
+                >
+                  {mutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ThumbsDown className="w-4 h-4" />
+                  )}
+                  Reject
+                </button>
+                <button
+                  onClick={() => {
+                    setDecisionType('APPROVE');
+                    setIsDecisionModalOpen(true);
+                  }}
+                  disabled={mutation.isPending}
+                  className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-100 transform active:scale-95 transition-all"
+                >
+                  {mutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ThumbsUp className="w-4 h-4" />
+                  )}
+                  CEO Final Approval
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      <CEODecisionModal
+        isOpen={isDecisionModalOpen}
+        onClose={() => setIsDecisionModalOpen(false)}
+        type={decisionType}
+        isPending={mutation.isPending}
+        onConfirm={(remarks) => {
+          mutation.mutate({
+            status: decisionType === 'APPROVE' ? 'CEO_APPROVED' : 'REJECTED',
+            remarks,
+          });
+          setIsDecisionModalOpen(false);
+        }}
+      />
     </>
   );
 };

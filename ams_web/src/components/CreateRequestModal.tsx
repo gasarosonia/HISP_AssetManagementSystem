@@ -48,7 +48,7 @@ export const CreateRequestModal = ({
   requestMode,
   baseRequest,
 }: CreateRequestModalProps) => {
-  const { user, isHOD } = useAuth();
+  const { user, isHOD, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -105,19 +105,19 @@ export const CreateRequestModal = ({
             })),
           );
         }
-      } else if (isHOD && user?.department?.id) {
+      } else if ((isHOD || isAdmin) && user?.department?.id) {
         setDepartmentId(user.department.id);
-        if (requestMode === 'SHARED') {
+        if (requestMode === 'SHARED' || isAdmin) {
           setRequestedById(user.id);
         } else {
           setRequestedById('');
         }
-      } else if (!isHOD) {
+      } else if (!isHOD && !isAdmin) {
         setDepartmentId('');
         setRequestedById('');
       }
     }
-  }, [isOpen, isHOD, user, requestMode, baseRequest]);
+  }, [isOpen, isHOD, isAdmin, user, requestMode, baseRequest]);
 
   const { data: departments, isFetching: loadingDepts } = useQuery({
     queryKey: ['departments'],
@@ -192,14 +192,40 @@ export const CreateRequestModal = ({
     }
 
     try {
+      let finalTitle = baseRequest
+        ? baseRequest.title
+        : `Requisition: ${validItems[0].name}${validItems.length > 1 ? ` +${validItems.length - 1} more` : ''}`;
+
+      // Only add 'Formalized:' prefix when HOD is officially formalizing a PENDING staff request
+      if (
+        isHOD &&
+        baseRequest?.status === 'PENDING' &&
+        !baseRequest?.title?.startsWith('Formalized:')
+      ) {
+        finalTitle = `Formalized: ${finalTitle}`;
+      }
+
       const payload = {
-        title: baseRequest
-          ? `Formalized: ${baseRequest.title}`
-          : `Requisition: ${validItems[0].name} ${validItems.length > 1 ? `+${validItems.length - 1} more` : ''}`,
+        title: finalTitle,
         requested_by_id: requestedById,
         department_id: departmentId,
         urgency,
-        status: isHOD ? 'HOD_APPROVED' : 'PENDING',
+        // Workflow status transitions:
+        // - HOD formalizing PENDING request → HOD_APPROVED
+        // - Admin editing HOD_APPROVED request → APPROVED (Admin verified)
+        // - Any other edit → preserve existing status
+        // - New HOD request → HOD_APPROVED, New Staff request → PENDING
+        status: baseRequest
+          ? baseRequest.status === 'PENDING' && isHOD
+            ? 'HOD_APPROVED'
+            : baseRequest.status === 'HOD_APPROVED'
+              ? 'APPROVED'
+              : baseRequest.status
+          : isAdmin
+            ? 'APPROVED'
+            : isHOD
+              ? 'HOD_APPROVED'
+              : 'PENDING',
         items: validItems.map((item) => ({
           name: item.name,
           description: item.description,
@@ -262,12 +288,12 @@ export const CreateRequestModal = ({
               <CheckCircle2 className="w-12 h-12 text-emerald-500" />
             </div>
             <h2 className="text-3xl font-black text-slate-800 tracking-tight mb-4">
-              Requisition Submitted!
+              {baseRequest ? 'Requisition Updated!' : 'Requisition Submitted!'}
             </h2>
             <p className="text-slate-500 font-medium max-w-md mx-auto leading-relaxed">
-              Your official procurement requisition has been successfully logged
-              and forwarded to the Administration & Finance team for final
-              review.
+              {baseRequest
+                ? 'Your changes have been saved. The requisition remains in the pipeline for executive review.'
+                : 'Your official procurement requisition has been successfully logged and forwarded to the Administration & Finance team for final review.'}
             </p>
             <div className="mt-12 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />

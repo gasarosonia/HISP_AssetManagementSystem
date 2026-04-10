@@ -23,7 +23,16 @@ export class AssetRequest {
 
   @Column({
     type: 'enum',
-    enum: ['PENDING', 'HOD_APPROVED', 'APPROVED', 'REJECTED', 'FULFILLED'],
+    enum: [
+      'PENDING',
+      'HOD_APPROVED',
+      'APPROVED',
+      'CEO_REVIEW',
+      'CEO_APPROVED',
+      'ORDERED',
+      'REJECTED',
+      'FULFILLED',
+    ],
     default: 'PENDING',
   })
   status: string;
@@ -54,6 +63,9 @@ export class AssetRequest {
 
   @Column({ type: 'text', nullable: true })
   ceo_remarks: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  purchase_order: any;
 
   @Column({ type: 'boolean', default: false })
   is_shared: boolean;

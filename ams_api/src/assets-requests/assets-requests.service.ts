@@ -6,12 +6,14 @@ import { User } from 'src/users/entities/user.entity';
 import { Department } from 'src/departments/entities/department.entity';
 import { CreateAssetRequestDto } from './dto/create-assets-request.dto';
 import { UpdateAssetRequestDto } from './dto/update-assets-request.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AssetRequestsService {
   constructor(
     @InjectRepository(AssetRequest)
     private readonly requestRepo: Repository<AssetRequest>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -82,6 +84,51 @@ export class AssetRequestsService {
       } as unknown as User;
     }
 
-    return await this.requestRepo.save(request);
+    if (dto.purchase_order) {
+      request.purchase_order = dto.purchase_order;
+    }
+
+    const saved = await this.requestRepo.save(request);
+
+    // Trigger notifications when CEO makes a final decision
+    if (dto.status === 'CEO_APPROVED' || dto.status === 'REJECTED') {
+      const departmentId =
+        request.department?.id ||
+        (
+          await this.requestRepo.findOne({
+            where: { id },
+            relations: ['department'],
+          })
+        )?.department?.id;
+
+      const requestedById =
+        request.requested_by?.id ||
+        (
+          await this.requestRepo.findOne({
+            where: { id },
+            relations: ['requested_by'],
+          })
+        )?.requested_by?.id;
+
+      if (departmentId && requestedById) {
+        this.notificationsService
+          .notifyCEODecision({
+            status: dto.status,
+            requestId: id,
+            requestTitle: request.title,
+            requestedById,
+            departmentId,
+            ceoRemarks: dto.ceo_remarks,
+          })
+          .catch((err) =>
+            console.error(
+              '[NotificationsService] Failed to send CEO decision notifications:',
+              err,
+            ),
+          );
+      }
+    }
+
+    return saved;
   }
 }

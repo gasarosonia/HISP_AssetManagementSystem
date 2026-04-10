@@ -12,21 +12,26 @@ import {
   Banknote,
   Building2,
   User as UserIcon,
-  Check,
   X,
   Settings2,
   Activity,
   Download,
+  Send,
+  UserCheck,
+  FilePlus,
+  PackageCheck,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
-import { AssetRequest } from '../types/assets';
+import { AssetRequest, POData } from '../types/assets';
 import { CreateRequestModal } from '../components/CreateRequestModal';
 import { ViewRequestModal } from '../components/ViewRequestModal';
+import { CEODecisionModal } from '../components/CEODecisionModal';
 import { FormalizeRequestModal } from '../components/FormalizeRequestModal';
+import { PurchaseOrderModal } from '../components/PurchaseOrderModal';
 
 export const Requests = () => {
-  const { user: currentUser, isAdmin, isHOD, isStaff } = useAuth();
+  const { user: currentUser, isAdmin, isHOD, isStaff, isCEO } = useAuth();
   const isRequesterOnly = isStaff && !isAdmin && !isHOD;
   const queryClient = useQueryClient();
   const { openRequest } = useOutletContext<{ openRequest: () => void }>();
@@ -41,10 +46,18 @@ export const Requests = () => {
   const [requestToFormalize, setRequestToFormalize] =
     useState<AssetRequest | null>(null);
   const [isFormalizeModalOpen, setIsFormalizeModalOpen] = useState(false);
+  const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [decisionType, setDecisionType] = useState<'APPROVE' | 'REJECT'>(
+    'APPROVE',
+  );
+  const [requestForDecision, setRequestForDecision] =
+    useState<AssetRequest | null>(null);
   const [requestToView, setRequestToView] = useState<AssetRequest | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<AssetRequest | null>(
     null,
   );
+  const [isPOModalOpen, setIsPOModalOpen] = useState(false);
+  const [requestForPO, setRequestForPO] = useState<AssetRequest | null>(null);
 
   const { data: requests, isLoading } = useQuery<AssetRequest[]>({
     queryKey: ['assets-requests'],
@@ -54,8 +67,25 @@ export const Requests = () => {
     },
   });
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      return await api.patch(`/assets-requests/${id}`, { status });
+    mutationFn: async ({
+      id,
+      status,
+      ceo_remarks,
+      purchase_order,
+    }: {
+      id: string;
+      status: string;
+      ceo_remarks?: string;
+      purchase_order?: POData;
+    }) => {
+      const payload: {
+        status: string;
+        ceo_remarks?: string;
+        purchase_order?: POData;
+      } = { status };
+      if (ceo_remarks) payload.ceo_remarks = ceo_remarks;
+      if (purchase_order) payload.purchase_order = purchase_order;
+      return await api.patch(`/assets-requests/${id}`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets-requests'] });
@@ -72,8 +102,15 @@ export const Requests = () => {
         (r) => r.department?.id === currentUser?.department?.id,
       );
     } else if (isAdmin) {
-      // Admin should NOT see PENDING requests until they are HOD_APPROVED (Formalized)
       filtered = filtered.filter((r) => r.status !== 'PENDING');
+    } else if (isCEO) {
+      filtered = filtered.filter(
+        (r) =>
+          r.status === 'CEO_REVIEW' ||
+          r.status === 'CEO_APPROVED' ||
+          r.status === 'REJECTED' ||
+          r.status === 'FULFILLED',
+      );
     }
 
     if (filterStatus !== 'ALL') {
@@ -103,6 +140,7 @@ export const Requests = () => {
     isHOD,
     isStaff,
     isAdmin,
+    isCEO,
   ]);
 
   const pendingCount =
@@ -126,9 +164,15 @@ export const Requests = () => {
       case 'HOD_APPROVED':
         return 'bg-indigo-50 text-indigo-600 border-indigo-200';
       case 'APPROVED':
+        return 'bg-orange-50 text-orange-600 border-orange-200';
+      case 'CEO_REVIEW':
+        return 'bg-purple-50 text-purple-600 border-purple-200';
+      case 'CEO_APPROVED':
+        return 'bg-emerald-50 text-emerald-600 border-emerald-200';
+      case 'ORDERED':
         return 'bg-blue-50 text-blue-600 border-blue-200';
       case 'FULFILLED':
-        return 'bg-emerald-50 text-emerald-600 border-emerald-200';
+        return 'bg-slate-100 text-slate-500 border-slate-200';
       case 'REJECTED':
         return 'bg-red-50 text-red-600 border-red-200';
       default:
@@ -352,6 +396,8 @@ export const Requests = () => {
             'PENDING',
             'HOD_APPROVED',
             'APPROVED',
+            'CEO_REVIEW',
+            'CEO_APPROVED',
             'FULFILLED',
             'REJECTED',
           ].map((status) => (
@@ -507,28 +553,70 @@ export const Requests = () => {
                           <FileText className="w-4 h-4" />
                         </button>
 
-                        {/* ADMIN ONLY APPROVAL ACTIONS - After HOD has formalized */}
+                        {/* ADMIN ONLY ACTIONS - Verification (edit HOD_APPROVED) */}
                         {isAdmin && req.status === 'HOD_APPROVED' && (
+                          <button
+                            onClick={() => {
+                              setRequestToFormalize(req);
+                              setRequestMode('INDIVIDUAL');
+                              setIsCreateModalOpen(true);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-[#ff8000] hover:bg-orange-50 rounded-lg transition-colors"
+                            title="Edit & Verify Requisition"
+                          >
+                            <Settings2 className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* ADMIN ONLY ACTIONS - Forward verified request to CEO */}
+                        {isAdmin && req.status === 'APPROVED' && (
                           <>
                             <button
-                              onClick={() =>
-                                updateStatusMutation.mutate({
-                                  id: req.id,
-                                  status: 'APPROVED',
-                                })
-                              }
-                              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                              title="Final Approval"
+                              onClick={() => {
+                                setRequestToFormalize(req);
+                                setRequestMode('INDIVIDUAL');
+                                setIsCreateModalOpen(true);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-[#ff8000] hover:bg-orange-50 rounded-lg transition-colors"
+                              title="Edit Requisition"
                             >
-                              <Check className="w-4 h-4" />
+                              <Settings2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() =>
                                 updateStatusMutation.mutate({
                                   id: req.id,
-                                  status: 'REJECTED',
+                                  status: 'CEO_REVIEW',
                                 })
                               }
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="Send for Executive Approval"
+                            >
+                              <Send className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+
+                        {/* CEO ONLY ACTIONS - Final decision */}
+                        {isCEO && req.status === 'CEO_REVIEW' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setRequestForDecision(req);
+                                setDecisionType('APPROVE');
+                                setIsDecisionModalOpen(true);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="CEO Final Approval"
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setRequestForDecision(req);
+                                setDecisionType('REJECT');
+                                setIsDecisionModalOpen(true);
+                              }}
                               className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                               title="Reject Request"
                             >
@@ -537,7 +625,22 @@ export const Requests = () => {
                           </>
                         )}
 
-                        {isAdmin && req.status === 'APPROVED' && (
+                        {/* ADMIN ONLY - CEO_APPROVED -> Generate PO (Digital PO Form) */}
+                        {isAdmin && req.status === 'CEO_APPROVED' && (
+                          <button
+                            onClick={() => {
+                              setRequestForPO(req);
+                              setIsPOModalOpen(true);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Generate Purchase Order"
+                          >
+                            <FilePlus className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* ADMIN ONLY - Mark ORDERED as fulfilled/purchased */}
+                        {isAdmin && req.status === 'ORDERED' && (
                           <button
                             onClick={() =>
                               updateStatusMutation.mutate({
@@ -545,10 +648,10 @@ export const Requests = () => {
                                 status: 'FULFILLED',
                               })
                             }
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Mark as Fulfilled (Purchased)"
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="Mark as Fulfilled (Received)"
                           >
-                            <CheckCircle2 className="w-4 h-4" />
+                            <PackageCheck className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -587,6 +690,61 @@ export const Requests = () => {
           request={selectedRequest}
         />
       )}
+
+      <CEODecisionModal
+        isOpen={isDecisionModalOpen}
+        onClose={() => {
+          setIsDecisionModalOpen(false);
+          setRequestForDecision(null);
+        }}
+        type={decisionType}
+        isPending={updateStatusMutation.isPending}
+        onConfirm={(remarks) => {
+          if (requestForDecision) {
+            updateStatusMutation.mutate({
+              id: requestForDecision.id,
+              status: decisionType === 'APPROVE' ? 'CEO_APPROVED' : 'REJECTED',
+              ceo_remarks: remarks,
+            });
+            setIsDecisionModalOpen(false);
+            setRequestForDecision(null);
+          }
+        }}
+      />
+
+      <PurchaseOrderModal
+        isOpen={isPOModalOpen}
+        onClose={() => {
+          setIsPOModalOpen(false);
+          setRequestForPO(null);
+        }}
+        request={requestForPO}
+        isPending={updateStatusMutation.isPending}
+        onConfirm={(poData: POData) => {
+          if (requestForPO) {
+            updateStatusMutation.mutate(
+              {
+                id: requestForPO.id,
+                status: 'ORDERED',
+                purchase_order: poData,
+              },
+              {
+                onSuccess: () => {
+                  setIsPOModalOpen(false);
+                  setRequestForPO(null);
+                },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onError: (error: any) => {
+                  alert(
+                    error?.response?.data?.message ||
+                      'Failed to issue Purchase Order. Please try again.',
+                  );
+                },
+              },
+            );
+          }
+        }}
+      />
     </div>
   );
 };

@@ -29,11 +29,12 @@ export const SimpleRequestModal = ({
   isOpen,
   onClose,
 }: SimpleRequestModalProps) => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   const [categoryId, setCategoryId] = useState('');
   const [itemName, setItemName] = useState('');
+  const [isOther, setIsOther] = useState(false);
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -95,6 +96,7 @@ export const SimpleRequestModal = ({
   const resetForm = () => {
     setCategoryId('');
     setItemName('');
+    setIsOther(false);
     setDescription('');
     setError(null);
   };
@@ -113,12 +115,13 @@ export const SimpleRequestModal = ({
       requested_by_id: currentUser?.id,
       department_id: currentUser?.department?.id,
       urgency: 'MEDIUM',
+      status: isAdmin ? 'APPROVED' : 'PENDING',
       items: [
         {
           name: itemName,
           description: `Requested Category: ${selectedCategory?.name || 'Unknown'}`,
           quantity: 1,
-          unit_price: 0, // To be filled by HOD
+          unit_price: 0,
         },
       ],
       financials: {
@@ -150,8 +153,9 @@ export const SimpleRequestModal = ({
               Request Submitted!
             </h2>
             <p className="text-slate-500 font-medium px-8">
-              Your request has been sent to your Head of Department for review
-              and formal processing.
+              {isAdmin
+                ? 'Your request has been pre-approved. Procurement can now proceed with the fulfillment steps.'
+                : 'Your request has been sent to your Head of Department for review and formal processing.'}
             </p>
           </div>
         ) : (
@@ -185,7 +189,11 @@ export const SimpleRequestModal = ({
                   <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   <select
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
+                    onChange={(e) => {
+                      setCategoryId(e.target.value);
+                      setItemName('');
+                      setIsOther(false);
+                    }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000] outline-none transition-all appearance-none"
                     required
                   >
@@ -203,16 +211,99 @@ export const SimpleRequestModal = ({
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                   What item do you need? *
                 </label>
-                <div className="relative">
-                  <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={itemName}
-                    onChange={(e) => setItemName(e.target.value)}
-                    placeholder="e.g. Ergonomic Chair, MacBook Air M2"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000] outline-none transition-all placeholder:text-slate-400"
-                    required
-                  />
+                <div>
+                  {(() => {
+                    const selectedCat = categories?.find(
+                      (c) => c.id === categoryId,
+                    );
+                    const catName = selectedCat?.name.toLowerCase() || '';
+
+                    let options: string[] = [];
+                    if (
+                      catName.includes('computer') ||
+                      catName.includes('laptop') ||
+                      catName.includes('electronics')
+                    ) {
+                      options = ['Laptop', 'Monitor', 'Charger', 'Mouse'];
+                    } else if (
+                      catName.includes('furniture') ||
+                      catName.includes('fixture')
+                    ) {
+                      options = ['Chair', 'Desk', 'Filling Cabinet'];
+                    } else if (
+                      catName.includes('office') ||
+                      catName.includes('stationary') ||
+                      catName.includes('equipment')
+                    ) {
+                      options = [
+                        'Printer',
+                        'Photocopier',
+                        'Paper Shredder',
+                        'Stappling Machine',
+                      ];
+                    }
+
+                    const showDropdown = options.length > 0;
+
+                    return (
+                      <div className="space-y-3">
+                        {showDropdown && (
+                          <div className="relative">
+                            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10 pointer-events-none" />
+                            <select
+                              value={isOther ? 'OTHER' : itemName}
+                              onChange={(e) => {
+                                if (e.target.value === 'OTHER') {
+                                  setIsOther(true);
+                                  setItemName('');
+                                } else {
+                                  setIsOther(false);
+                                  setItemName(e.target.value);
+                                }
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000] outline-none transition-all appearance-none"
+                              required
+                              disabled={!categoryId}
+                            >
+                              <option value="">
+                                {!categoryId
+                                  ? 'Select a category first...'
+                                  : 'Select an item...'}
+                              </option>
+                              {options.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                              {categoryId && (
+                                <option value="OTHER">
+                                  Other / Custom Item
+                                </option>
+                              )}
+                            </select>
+                          </div>
+                        )}
+
+                        {categoryId && (isOther || !showDropdown) && (
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300 relative">
+                            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10 pointer-events-none" />
+                            <input
+                              type="text"
+                              value={itemName}
+                              onChange={(e) => setItemName(e.target.value)}
+                              placeholder={
+                                !showDropdown
+                                  ? 'Specify the item you need...'
+                                  : 'Type the item name manually...'
+                              }
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-[#ff8000]/10 focus:border-[#ff8000] outline-none transition-all"
+                              required
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

@@ -164,7 +164,7 @@ export const Login = () => {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Server Verified
+                System Active
               </span>
             </div>
             <ShieldCheck className="w-4 h-4 text-slate-300" />

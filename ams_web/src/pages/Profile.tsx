@@ -145,9 +145,31 @@ export const Profile = () => {
                           </code>
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[8.5px] font-black uppercase tracking-widest border border-emerald-100 shadow-sm">
-                            <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                            Stable
+                          <div
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-widest border shadow-sm ${
+                              asset.status === 'BROKEN'
+                                ? 'bg-amber-50 text-amber-600 border-amber-100'
+                                : asset.status === 'MISSING'
+                                  ? 'bg-red-50 text-red-600 border-red-100'
+                                  : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                            }`}
+                          >
+                            <span
+                              className={`w-1 h-1 rounded-full ${
+                                asset.status === 'BROKEN'
+                                  ? 'bg-amber-500'
+                                  : asset.status === 'MISSING'
+                                    ? 'bg-red-500'
+                                    : 'bg-emerald-500'
+                              }`}
+                            />
+                            {asset.status === 'BROKEN'
+                              ? 'Broken'
+                              : asset.status === 'MISSING'
+                                ? 'Missing'
+                                : asset.status === 'ASSIGNED'
+                                  ? 'Assigned'
+                                  : asset.status.replace('_', ' ')}
                           </div>
                         </td>
                       </tr>

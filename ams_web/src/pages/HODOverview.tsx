@@ -234,7 +234,13 @@ export const HODOverview = () => {
                           <span
                             className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm ${getStatusStyle(asset.status)}`}
                           >
-                            {asset.status}
+                            {asset.status === 'ASSIGNED'
+                              ? 'Assigned'
+                              : asset.status === 'BROKEN'
+                                ? 'Broken'
+                                : asset.status === 'MISSING'
+                                  ? 'Missing'
+                                  : asset.status.replace('_', ' ')}
                           </span>
                           <button
                             onClick={() => setSelectedAsset(asset)}
@@ -327,7 +333,13 @@ export const HODOverview = () => {
                           <span
                             className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm ${getStatusStyle(asset.status)}`}
                           >
-                            {asset.status}
+                            {asset.status === 'ASSIGNED'
+                              ? 'Assigned'
+                              : asset.status === 'BROKEN'
+                                ? 'Broken'
+                                : asset.status === 'MISSING'
+                                  ? 'Missing'
+                                  : asset.status.replace('_', ' ')}
                           </span>
                           <button
                             onClick={() => setSelectedAsset(asset)}

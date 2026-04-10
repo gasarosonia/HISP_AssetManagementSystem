@@ -7,6 +7,7 @@ import {
   IsArray,
   ValidateNested,
   IsBoolean,
+  IsObject,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -86,10 +87,28 @@ export class UpdateAssetRequestDto {
   urgency?: UrgencyLevel;
 
   @ApiPropertyOptional({
-    enum: ['PENDING', 'HOD_APPROVED', 'APPROVED', 'FULFILLED', 'REJECTED'],
+    enum: [
+      'PENDING',
+      'HOD_APPROVED',
+      'APPROVED',
+      'CEO_REVIEW',
+      'CEO_APPROVED',
+      'ORDERED',
+      'FULFILLED',
+      'REJECTED',
+    ],
   })
   @IsOptional()
-  @IsIn(['PENDING', 'HOD_APPROVED', 'APPROVED', 'FULFILLED', 'REJECTED'])
+  @IsIn([
+    'PENDING',
+    'HOD_APPROVED',
+    'APPROVED',
+    'CEO_REVIEW',
+    'CEO_APPROVED',
+    'ORDERED',
+    'FULFILLED',
+    'REJECTED',
+  ])
   status?: string;
 
   @ApiPropertyOptional()
@@ -131,4 +150,8 @@ export class UpdateAssetRequestDto {
   @IsOptional()
   @IsString()
   ceo_remarks?: string;
+
+  @IsOptional()
+  @IsObject()
+  purchase_order?: Record<string, any>;
 }

@@ -65,10 +65,7 @@ export const AdminOverview = () => {
     const brokenAssets = assets.filter((a) => a.status === 'BROKEN').length;
 
     const pendingRequests = requests.filter(
-      (r) =>
-        r.status !== 'PENDING' &&
-        r.status !== 'REJECTED' &&
-        r.status !== 'FULFILLED',
+      (r) => r.status === 'HOD_APPROVED' || r.status === 'APPROVED',
     );
     const pendingRequestsValue = pendingRequests.reduce(
       (sum, r: AssetRequest) => {

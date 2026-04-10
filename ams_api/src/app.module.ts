@@ -12,6 +12,7 @@ import { AssetRequestsModule } from './assets-requests/assets-requests.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { AssetIncidentsModule } from './asset-incidents/asset-incidents.module';
 import { AuthModule } from './auth/auth.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AuthModule } from './auth/auth.module';
     AuditLogsModule,
     AssetIncidentsModule,
     AuthModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

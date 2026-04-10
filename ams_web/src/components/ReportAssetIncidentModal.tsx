@@ -88,6 +88,7 @@ export const ReportAssetIncidentModal = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['asset-incidents'] });
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
   });
 

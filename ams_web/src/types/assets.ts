@@ -21,6 +21,23 @@ export interface AssetAssignment {
   condition_on_assign?: string;
 }
 
+export interface POData {
+  vendor_details: string;
+  order_date: string;
+  po_number: string;
+  payment_terms: string;
+  special_instructions: string;
+  period_of_performance: string;
+  shipping_cost: number;
+  other_cost: number;
+  grand_total: number;
+  hisp_sign_name: string;
+  hisp_sign_date: string;
+  vendor_sign_name: string;
+  vendor_sign_date: string;
+  authorized_by: string;
+}
+
 export interface Asset {
   id: string;
   name: string;
@@ -50,7 +67,17 @@ export interface AssetRequest {
   quantity?: number;
   estimated_unit_cost?: number;
   urgency: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status: 'PENDING' | 'HOD_APPROVED' | 'APPROVED' | 'REJECTED' | 'FULFILLED';
+  status:
+    | 'PENDING'
+    | 'HOD_APPROVED'
+    | 'APPROVED'
+    | 'CEO_REVIEW'
+    | 'CEO_APPROVED'
+    | 'ORDERED'
+    | 'REJECTED'
+    | 'FULFILLED';
+  ceo_remarks?: string;
+  purchase_order?: POData;
   requested_by?: { full_name: string; id: string };
   department?: { id: string; name: string };
   items?: {

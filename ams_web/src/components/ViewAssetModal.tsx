@@ -87,8 +87,25 @@ export const ViewAssetModal = ({
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 flex items-center gap-1">
                 <Activity className="w-3 h-3" /> Status
               </p>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-600">
-                {asset.status.replace('_', ' ')}
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                  asset.status === 'ASSIGNED' || asset.status === 'IN_STOCK'
+                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                    : asset.status === 'BROKEN'
+                      ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                      : asset.status === 'MISSING' ||
+                          asset.status === 'DISPOSED'
+                        ? 'bg-red-50 text-red-600 border border-red-100'
+                        : 'bg-slate-200 text-slate-600'
+                }`}
+              >
+                {asset.status === 'ASSIGNED'
+                  ? 'Assigned'
+                  : asset.status === 'BROKEN'
+                    ? 'Broken'
+                    : asset.status === 'MISSING'
+                      ? 'Missing'
+                      : asset.status.replace('_', ' ')}
               </span>
             </div>
             <div>

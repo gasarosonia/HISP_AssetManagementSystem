@@ -275,11 +275,13 @@ export const StaffOverview = () => {
                                     : 'bg-emerald-500'
                               }`}
                             />
-                            {asset.status === 'BROKEN'
-                              ? 'Broken'
-                              : asset.status === 'MISSING'
-                                ? 'Missing'
-                                : 'Assigned'}
+                            {asset.status === 'ASSIGNED'
+                              ? 'Assigned'
+                              : asset.status === 'BROKEN'
+                                ? 'Broken'
+                                : asset.status === 'MISSING'
+                                  ? 'Missing'
+                                  : asset.status.replace('_', ' ')}
                           </div>
                         </td>
                         <td className="px-4 py-3">

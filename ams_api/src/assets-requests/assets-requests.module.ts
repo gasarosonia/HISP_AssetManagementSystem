@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AssetRequest } from './entities/assets-request.entity';
 import { AssetRequestsController } from './assets-requests.controller';
 import { AssetRequestsService } from './assets-requests.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AssetRequest])],
+  imports: [TypeOrmModule.forFeature([AssetRequest]), NotificationsModule],
   controllers: [AssetRequestsController],
   providers: [AssetRequestsService],
   exports: [AssetRequestsService],

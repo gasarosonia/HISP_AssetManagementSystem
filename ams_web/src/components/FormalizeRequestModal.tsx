@@ -111,8 +111,13 @@ export const FormalizeRequestModal = ({
       return;
     }
 
+    const finalTitle = request.title.startsWith('Formalized:')
+      ? request.title
+      : `Formalized: ${request.title}`;
+
     const payload: Partial<AssetRequest> = {
       ...request,
+      title: finalTitle,
       status: 'HOD_APPROVED',
       urgency,
       description,
@@ -147,8 +152,8 @@ export const FormalizeRequestModal = ({
               Requisition Formalized!
             </h2>
             <p className="text-slate-500 font-medium px-8">
-              The request has been updated with official details and forwarded
-              to Administration & Finance.
+              The request has been updated and forwarded to Administration &
+              Finance for verification.
             </p>
           </div>
         ) : (
@@ -346,7 +351,7 @@ export const FormalizeRequestModal = ({
                 ) : (
                   <>
                     <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                    Approve & Forward to Finance
+                    Formalize & Forward to Admin
                   </>
                 )}
               </button>
